@@ -1,6 +1,6 @@
 {
   "branches": ["main"],
-  "repositoryUrl": "https://github.com/aether-workflow/aether.git",
+  "repositoryUrl": "https://github.com/Aetherframework-ai/aether",
   "tagFormat": "v${version}",
   "plugins": [
     ["@semantic-release/commit-analyzer", {
