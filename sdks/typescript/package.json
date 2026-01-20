@@ -1,5 +1,5 @@
 {
-  "name": "@aether/sdk",
+  "name": "@aetherframework.ai/sdk",
   "version": "0.1.0",
   "description": "TypeScript SDK for Aether workflow engine",
   "license": "Apache-2.0",
