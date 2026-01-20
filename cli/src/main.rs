@@ -286,6 +286,7 @@ async fn config_gen_command(
     Ok(())
 }
 
+#[allow(unused)]
 async fn generate_config_content(
     source: &str,
     server: &str,
