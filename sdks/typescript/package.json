@@ -34,5 +34,16 @@
   },
   "peerDependencies": {
     "typescript": ">=4.0.0"
+  },
+  "release": {
+    "branches": ["main"],
+    "plugins": [
+      ["@semantic-release/npm", {
+        "pkgRoot": "."
+      }],
+      ["@semantic-release/github", {
+        "assets": []
+      }]
+    ]
   }
 }
