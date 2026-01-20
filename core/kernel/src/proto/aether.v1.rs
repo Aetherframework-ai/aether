@@ -126,9 +126,7 @@ pub struct RegisterResponse {
     #[prost(string, tag = "1")]
     pub server_id: ::prost::alloc::string::String,
     #[prost(string, repeated, tag = "2")]
-    pub supported_workflow_types: ::prost::alloc::vec::Vec<
-        ::prost::alloc::string::String,
-    >,
+    pub supported_workflow_types: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -283,8 +281,8 @@ impl State {
 /// Generated client implementations.
 pub mod client_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-    use tonic::codegen::*;
     use tonic::codegen::http::Uri;
+    use tonic::codegen::*;
     /// ========== Client API ==========
     #[derive(Debug, Clone)]
     pub struct ClientServiceClient<T> {
@@ -329,9 +327,8 @@ pub mod client_service_client {
                     <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
                 >,
             >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + Send + Sync,
+            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
+                Into<StdError> + Send + Sync,
         {
             ClientServiceClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -369,23 +366,17 @@ pub mod client_service_client {
         pub async fn start_workflow(
             &mut self,
             request: impl tonic::IntoRequest<super::StartWorkflowRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::StartWorkflowResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::StartWorkflowResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/aether.v1.ClientService/StartWorkflow",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/aether.v1.ClientService/StartWorkflow");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("aether.v1.ClientService", "StartWorkflow"));
@@ -395,41 +386,34 @@ pub mod client_service_client {
             &mut self,
             request: impl tonic::IntoRequest<super::GetStatusRequest>,
         ) -> std::result::Result<tonic::Response<super::WorkflowStatus>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/aether.v1.ClientService/GetWorkflowStatus",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/aether.v1.ClientService/GetWorkflowStatus");
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("aether.v1.ClientService", "GetWorkflowStatus"));
+            req.extensions_mut().insert(GrpcMethod::new(
+                "aether.v1.ClientService",
+                "GetWorkflowStatus",
+            ));
             self.inner.unary(req, path, codec).await
         }
         pub async fn await_result(
             &mut self,
             request: impl tonic::IntoRequest<super::AwaitResultRequest>,
         ) -> std::result::Result<tonic::Response<super::WorkflowResult>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/aether.v1.ClientService/AwaitResult",
-            );
+            let path = http::uri::PathAndQuery::from_static("/aether.v1.ClientService/AwaitResult");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("aether.v1.ClientService", "AwaitResult"));
@@ -439,19 +423,15 @@ pub mod client_service_client {
             &mut self,
             request: impl tonic::IntoRequest<super::CancelRequest>,
         ) -> std::result::Result<tonic::Response<super::CancelResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/aether.v1.ClientService/CancelWorkflow",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/aether.v1.ClientService/CancelWorkflow");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("aether.v1.ClientService", "CancelWorkflow"));
@@ -462,8 +442,8 @@ pub mod client_service_client {
 /// Generated client implementations.
 pub mod worker_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-    use tonic::codegen::*;
     use tonic::codegen::http::Uri;
+    use tonic::codegen::*;
     /// ========== Worker API ==========
     #[derive(Debug, Clone)]
     pub struct WorkerServiceClient<T> {
@@ -508,9 +488,8 @@ pub mod worker_service_client {
                     <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
                 >,
             >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + Send + Sync,
+            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
+                Into<StdError> + Send + Sync,
         {
             WorkerServiceClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -548,23 +527,15 @@ pub mod worker_service_client {
         pub async fn register(
             &mut self,
             request: impl tonic::IntoRequest<super::RegisterRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::RegisterResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::RegisterResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/aether.v1.WorkerService/Register",
-            );
+            let path = http::uri::PathAndQuery::from_static("/aether.v1.WorkerService/Register");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("aether.v1.WorkerService", "Register"));
@@ -573,23 +544,16 @@ pub mod worker_service_client {
         pub async fn poll_tasks(
             &mut self,
             request: impl tonic::IntoRequest<super::PollRequest>,
-        ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::Task>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<tonic::codec::Streaming<super::Task>>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/aether.v1.WorkerService/PollTasks",
-            );
+            let path = http::uri::PathAndQuery::from_static("/aether.v1.WorkerService/PollTasks");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("aether.v1.WorkerService", "PollTasks"));
@@ -598,23 +562,17 @@ pub mod worker_service_client {
         pub async fn complete_step(
             &mut self,
             request: impl tonic::IntoRequest<super::CompleteStepRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::CompleteStepResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::CompleteStepResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/aether.v1.WorkerService/CompleteStep",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/aether.v1.WorkerService/CompleteStep");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("aether.v1.WorkerService", "CompleteStep"));
@@ -623,23 +581,15 @@ pub mod worker_service_client {
         pub async fn heartbeat(
             &mut self,
             request: impl tonic::IntoRequest<super::HeartbeatRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::HeartbeatResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::HeartbeatResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/aether.v1.WorkerService/Heartbeat",
-            );
+            let path = http::uri::PathAndQuery::from_static("/aether.v1.WorkerService/Heartbeat");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("aether.v1.WorkerService", "Heartbeat"));
@@ -650,8 +600,8 @@ pub mod worker_service_client {
 /// Generated client implementations.
 pub mod admin_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-    use tonic::codegen::*;
     use tonic::codegen::http::Uri;
+    use tonic::codegen::*;
     /// ========== Admin API ==========
     #[derive(Debug, Clone)]
     pub struct AdminServiceClient<T> {
@@ -696,9 +646,8 @@ pub mod admin_service_client {
                     <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
                 >,
             >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + Send + Sync,
+            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
+                Into<StdError> + Send + Sync,
         {
             AdminServiceClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -740,19 +689,15 @@ pub mod admin_service_client {
             tonic::Response<tonic::codec::Streaming<super::WorkflowInfo>>,
             tonic::Status,
         > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/aether.v1.AdminService/ListWorkflows",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/aether.v1.AdminService/ListWorkflows");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("aether.v1.AdminService", "ListWorkflows"));
@@ -762,19 +707,14 @@ pub mod admin_service_client {
             &mut self,
             request: impl tonic::IntoRequest<super::GetMetricsRequest>,
         ) -> std::result::Result<tonic::Response<super::Metrics>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/aether.v1.AdminService/GetMetrics",
-            );
+            let path = http::uri::PathAndQuery::from_static("/aether.v1.AdminService/GetMetrics");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("aether.v1.AdminService", "GetMetrics"));
@@ -792,10 +732,7 @@ pub mod client_service_server {
         async fn start_workflow(
             &self,
             request: tonic::Request<super::StartWorkflowRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::StartWorkflowResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::StartWorkflowResponse>, tonic::Status>;
         async fn get_workflow_status(
             &self,
             request: tonic::Request<super::GetStatusRequest>,
@@ -833,10 +770,7 @@ pub mod client_service_server {
                 max_encoding_message_size: None,
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -892,15 +826,11 @@ pub mod client_service_server {
                 "/aether.v1.ClientService/StartWorkflow" => {
                     #[allow(non_camel_case_types)]
                     struct StartWorkflowSvc<T: ClientService>(pub Arc<T>);
-                    impl<
-                        T: ClientService,
-                    > tonic::server::UnaryService<super::StartWorkflowRequest>
-                    for StartWorkflowSvc<T> {
+                    impl<T: ClientService> tonic::server::UnaryService<super::StartWorkflowRequest>
+                        for StartWorkflowSvc<T>
+                    {
                         type Response = super::StartWorkflowResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::StartWorkflowRequest>,
@@ -938,23 +868,18 @@ pub mod client_service_server {
                 "/aether.v1.ClientService/GetWorkflowStatus" => {
                     #[allow(non_camel_case_types)]
                     struct GetWorkflowStatusSvc<T: ClientService>(pub Arc<T>);
-                    impl<
-                        T: ClientService,
-                    > tonic::server::UnaryService<super::GetStatusRequest>
-                    for GetWorkflowStatusSvc<T> {
+                    impl<T: ClientService> tonic::server::UnaryService<super::GetStatusRequest>
+                        for GetWorkflowStatusSvc<T>
+                    {
                         type Response = super::WorkflowStatus;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::GetStatusRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ClientService>::get_workflow_status(&inner, request)
-                                    .await
+                                <T as ClientService>::get_workflow_status(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -985,15 +910,11 @@ pub mod client_service_server {
                 "/aether.v1.ClientService/AwaitResult" => {
                     #[allow(non_camel_case_types)]
                     struct AwaitResultSvc<T: ClientService>(pub Arc<T>);
-                    impl<
-                        T: ClientService,
-                    > tonic::server::UnaryService<super::AwaitResultRequest>
-                    for AwaitResultSvc<T> {
+                    impl<T: ClientService> tonic::server::UnaryService<super::AwaitResultRequest>
+                        for AwaitResultSvc<T>
+                    {
                         type Response = super::WorkflowResult;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::AwaitResultRequest>,
@@ -1031,15 +952,9 @@ pub mod client_service_server {
                 "/aether.v1.ClientService/CancelWorkflow" => {
                     #[allow(non_camel_case_types)]
                     struct CancelWorkflowSvc<T: ClientService>(pub Arc<T>);
-                    impl<
-                        T: ClientService,
-                    > tonic::server::UnaryService<super::CancelRequest>
-                    for CancelWorkflowSvc<T> {
+                    impl<T: ClientService> tonic::server::UnaryService<super::CancelRequest> for CancelWorkflowSvc<T> {
                         type Response = super::CancelResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::CancelRequest>,
@@ -1074,18 +989,14 @@ pub mod client_service_server {
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", "12")
-                                .header("content-type", "application/grpc")
-                                .body(empty_body())
-                                .unwrap(),
-                        )
-                    })
-                }
+                _ => Box::pin(async move {
+                    Ok(http::Response::builder()
+                        .status(200)
+                        .header("grpc-status", "12")
+                        .header("content-type", "application/grpc")
+                        .body(empty_body())
+                        .unwrap())
+                }),
             }
         }
     }
@@ -1125,15 +1036,11 @@ pub mod worker_service_server {
         async fn register(
             &self,
             request: tonic::Request<super::RegisterRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::RegisterResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::RegisterResponse>, tonic::Status>;
         /// Server streaming response type for the PollTasks method.
         type PollTasksStream: tonic::codegen::tokio_stream::Stream<
                 Item = std::result::Result<super::Task, tonic::Status>,
-            >
-            + Send
+            > + Send
             + 'static;
         async fn poll_tasks(
             &self,
@@ -1142,17 +1049,11 @@ pub mod worker_service_server {
         async fn complete_step(
             &self,
             request: tonic::Request<super::CompleteStepRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::CompleteStepResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::CompleteStepResponse>, tonic::Status>;
         async fn heartbeat(
             &self,
             request: tonic::Request<super::HeartbeatRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::HeartbeatResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::HeartbeatResponse>, tonic::Status>;
     }
     /// ========== Worker API ==========
     #[derive(Debug)]
@@ -1178,10 +1079,7 @@ pub mod worker_service_server {
                 max_encoding_message_size: None,
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -1237,15 +1135,9 @@ pub mod worker_service_server {
                 "/aether.v1.WorkerService/Register" => {
                     #[allow(non_camel_case_types)]
                     struct RegisterSvc<T: WorkerService>(pub Arc<T>);
-                    impl<
-                        T: WorkerService,
-                    > tonic::server::UnaryService<super::RegisterRequest>
-                    for RegisterSvc<T> {
+                    impl<T: WorkerService> tonic::server::UnaryService<super::RegisterRequest> for RegisterSvc<T> {
                         type Response = super::RegisterResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::RegisterRequest>,
@@ -1283,16 +1175,13 @@ pub mod worker_service_server {
                 "/aether.v1.WorkerService/PollTasks" => {
                     #[allow(non_camel_case_types)]
                     struct PollTasksSvc<T: WorkerService>(pub Arc<T>);
-                    impl<
-                        T: WorkerService,
-                    > tonic::server::ServerStreamingService<super::PollRequest>
-                    for PollTasksSvc<T> {
+                    impl<T: WorkerService> tonic::server::ServerStreamingService<super::PollRequest>
+                        for PollTasksSvc<T>
+                    {
                         type Response = super::Task;
                         type ResponseStream = T::PollTasksStream;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::ResponseStream>,
-                            tonic::Status,
-                        >;
+                        type Future =
+                            BoxFuture<tonic::Response<Self::ResponseStream>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::PollRequest>,
@@ -1330,15 +1219,11 @@ pub mod worker_service_server {
                 "/aether.v1.WorkerService/CompleteStep" => {
                     #[allow(non_camel_case_types)]
                     struct CompleteStepSvc<T: WorkerService>(pub Arc<T>);
-                    impl<
-                        T: WorkerService,
-                    > tonic::server::UnaryService<super::CompleteStepRequest>
-                    for CompleteStepSvc<T> {
+                    impl<T: WorkerService> tonic::server::UnaryService<super::CompleteStepRequest>
+                        for CompleteStepSvc<T>
+                    {
                         type Response = super::CompleteStepResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::CompleteStepRequest>,
@@ -1376,15 +1261,9 @@ pub mod worker_service_server {
                 "/aether.v1.WorkerService/Heartbeat" => {
                     #[allow(non_camel_case_types)]
                     struct HeartbeatSvc<T: WorkerService>(pub Arc<T>);
-                    impl<
-                        T: WorkerService,
-                    > tonic::server::UnaryService<super::HeartbeatRequest>
-                    for HeartbeatSvc<T> {
+                    impl<T: WorkerService> tonic::server::UnaryService<super::HeartbeatRequest> for HeartbeatSvc<T> {
                         type Response = super::HeartbeatResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::HeartbeatRequest>,
@@ -1419,18 +1298,14 @@ pub mod worker_service_server {
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", "12")
-                                .header("content-type", "application/grpc")
-                                .body(empty_body())
-                                .unwrap(),
-                        )
-                    })
-                }
+                _ => Box::pin(async move {
+                    Ok(http::Response::builder()
+                        .status(200)
+                        .header("grpc-status", "12")
+                        .header("content-type", "application/grpc")
+                        .body(empty_body())
+                        .unwrap())
+                }),
             }
         }
     }
@@ -1470,16 +1345,12 @@ pub mod admin_service_server {
         /// Server streaming response type for the ListWorkflows method.
         type ListWorkflowsStream: tonic::codegen::tokio_stream::Stream<
                 Item = std::result::Result<super::WorkflowInfo, tonic::Status>,
-            >
-            + Send
+            > + Send
             + 'static;
         async fn list_workflows(
             &self,
             request: tonic::Request<super::ListRequest>,
-        ) -> std::result::Result<
-            tonic::Response<Self::ListWorkflowsStream>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<Self::ListWorkflowsStream>, tonic::Status>;
         async fn get_metrics(
             &self,
             request: tonic::Request<super::GetMetricsRequest>,
@@ -1509,10 +1380,7 @@ pub mod admin_service_server {
                 max_encoding_message_size: None,
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -1568,16 +1436,13 @@ pub mod admin_service_server {
                 "/aether.v1.AdminService/ListWorkflows" => {
                     #[allow(non_camel_case_types)]
                     struct ListWorkflowsSvc<T: AdminService>(pub Arc<T>);
-                    impl<
-                        T: AdminService,
-                    > tonic::server::ServerStreamingService<super::ListRequest>
-                    for ListWorkflowsSvc<T> {
+                    impl<T: AdminService> tonic::server::ServerStreamingService<super::ListRequest>
+                        for ListWorkflowsSvc<T>
+                    {
                         type Response = super::WorkflowInfo;
                         type ResponseStream = T::ListWorkflowsStream;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::ResponseStream>,
-                            tonic::Status,
-                        >;
+                        type Future =
+                            BoxFuture<tonic::Response<Self::ResponseStream>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::ListRequest>,
@@ -1615,15 +1480,9 @@ pub mod admin_service_server {
                 "/aether.v1.AdminService/GetMetrics" => {
                     #[allow(non_camel_case_types)]
                     struct GetMetricsSvc<T: AdminService>(pub Arc<T>);
-                    impl<
-                        T: AdminService,
-                    > tonic::server::UnaryService<super::GetMetricsRequest>
-                    for GetMetricsSvc<T> {
+                    impl<T: AdminService> tonic::server::UnaryService<super::GetMetricsRequest> for GetMetricsSvc<T> {
                         type Response = super::Metrics;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::GetMetricsRequest>,
@@ -1658,18 +1517,14 @@ pub mod admin_service_server {
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", "12")
-                                .header("content-type", "application/grpc")
-                                .body(empty_body())
-                                .unwrap(),
-                        )
-                    })
-                }
+                _ => Box::pin(async move {
+                    Ok(http::Response::builder()
+                        .status(200)
+                        .header("grpc-status", "12")
+                        .header("content-type", "application/grpc")
+                        .body(empty_body())
+                        .unwrap())
+                }),
             }
         }
     }

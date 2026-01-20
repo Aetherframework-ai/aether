@@ -1,6 +1,6 @@
+use super::Persistence;
 use crate::state_machine::Workflow;
 use crate::state_machine::WorkflowState;
-use super::Persistence;
 use prost_types::Timestamp;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
@@ -47,11 +47,11 @@ impl Persistence for L2StateActionStore {
     async fn list_workflows(&self, workflow_type: Option<&str>) -> anyhow::Result<Vec<Workflow>> {
         let workflows = self.workflows.read().await;
         let mut result: Vec<Workflow> = workflows.values().cloned().collect();
-        
+
         if let Some(wf_type) = workflow_type {
             result.retain(|w| w.workflow_type == wf_type);
         }
-        
+
         Ok(result)
     }
 
@@ -64,16 +64,28 @@ impl Persistence for L2StateActionStore {
         Ok(())
     }
 
-    async fn save_step_result(&self, workflow_id: &str, step_name: &str, result: Vec<u8>) -> anyhow::Result<()> {
+    async fn save_step_result(
+        &self,
+        workflow_id: &str,
+        step_name: &str,
+        result: Vec<u8>,
+    ) -> anyhow::Result<()> {
         let mut step_results = self.step_results.write().await;
-        let workflow_results = step_results.entry(workflow_id.to_string()).or_insert_with(HashMap::new);
+        let workflow_results = step_results
+            .entry(workflow_id.to_string())
+            .or_insert_with(HashMap::new);
         workflow_results.insert(step_name.to_string(), result);
         Ok(())
     }
 
-    async fn get_step_result(&self, workflow_id: &str, step_name: &str) -> anyhow::Result<Option<Vec<u8>>> {
+    async fn get_step_result(
+        &self,
+        workflow_id: &str,
+        step_name: &str,
+    ) -> anyhow::Result<Option<Vec<u8>>> {
         let step_results = self.step_results.read().await;
-        Ok(step_results.get(workflow_id)
+        Ok(step_results
+            .get(workflow_id)
             .and_then(|results| results.get(step_name).cloned()))
     }
 }
