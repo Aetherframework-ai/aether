@@ -2,6 +2,8 @@
 name = "aether-kernel"
 version = "0.1.0"
 edition = "2021"
+description = "Core kernel for Aether workflow engine"
+license = "Apache-2.0"
 
 [build-dependencies]
 prost-build = "0.12"
