@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package aether.v1;
+
+// ========== Client API ==========
+service ClientService {
+  rpc StartWorkflow(StartWorkflowRequest) returns (StartWorkflowResponse);
+  rpc GetWorkflowStatus(GetStatusRequest) returns (WorkflowStatus);
+  rpc AwaitResult(AwaitResultRequest) returns (WorkflowResult);
+  rpc CancelWorkflow(CancelRequest) returns (CancelResponse);
+}
+
+// ========== Worker API ==========
+service WorkerService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc PollTasks(PollRequest) returns (stream Task);
+  rpc CompleteStep(CompleteStepRequest) returns (CompleteStepResponse);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+}
+
+// ========== Admin API ==========
+service AdminService {
+  rpc ListWorkflows(ListRequest) returns (stream WorkflowInfo);
+  rpc GetMetrics(GetMetricsRequest) returns (Metrics);
+}
+
+// ========== 核心消息 ==========
+message StartWorkflowRequest {
+  string workflow_type = 1;
+  bytes input = 2;
+}
+
+message StartWorkflowResponse {
+  string workflow_id = 1;
+}
+
+message GetStatusRequest {
+  string workflow_id = 1;
+}
+
+message WorkflowStatus {
+  string workflow_id = 1;
+  State state = 2;
+  string current_step = 3;
+  bytes result = 4;
+  string error = 5;
+  int64 started_at = 6;
+  int64 completed_at = 7;
+}
+
+enum State {
+  PENDING = 0;
+  RUNNING = 1;
+  COMPLETED = 2;
+  FAILED = 3;
+  CANCELLED = 4;
+}
+
+message Task {
+  string task_id = 1;
+  string workflow_id = 2;
+  string step_name = 3;
+  bytes input = 4;
+  RetryPolicy retry = 5;
+}
+
+message RetryPolicy {
+  int32 max_attempts = 1;
+  int32 initial_interval = 2;
+  int32 backoff_multiplier = 3;
+}
+
+message CompleteStepRequest {
+  string task_id = 1;
+  bytes result = 2;
+  string error = 3;
+}
+
+message CompleteStepResponse {
+  bool success = 1;
+}
+
+message RegisterRequest {
+  string worker_id = 1;
+  repeated string workflow_types = 2;
+}
+
+message RegisterResponse {
+  string server_id = 1;
+}
+
+message PollRequest {
+  string worker_id = 1;
+  int32 max_tasks = 2;
+}
+
+message HeartbeatRequest {
+  string task_id = 1;
+}
+
+message HeartbeatResponse {
+  bool ok = 1;
+}
+
+message WorkflowResult {
+  bytes result = 1;
+  string error = 2;
+  State state = 3;
+}
+
+message CancelRequest {
+  string workflow_id = 1;
+}
+
+message CancelResponse {
+  bool success = 1;
+}
+
+message ListRequest {
+  string workflow_type = 1;
+  State state = 2;
+}
+
+message WorkflowInfo {
+  string workflow_id = 1;
+  string workflow_type = 2;
+  State state = 3;
+  int64 started_at = 4;
+  int64 completed_at = 5;
+}
+
+message GetMetricsRequest {}
+
+message Metrics {
+  int64 active_workflows = 1;
+  int64 completed_workflows = 2;
+  int64 failed_workflows = 3;
+}
+
+message AwaitResultRequest {
+  string workflow_id = 1;
+  int32 timeout_seconds = 2;
+}

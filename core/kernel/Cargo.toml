@@ -1,0 +1,26 @@
+[package]
+name = "aether-kernel"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+prost-build = "0.12"
+tonic-build = "0.10"
+
+[dependencies]
+actix-web = "4"
+prost = "0.12"
+prost-types = "0.12"
+tokio = { version = "1.0", features = ["full"] }
+tokio-stream = "0.1"
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "postgres"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+clap = { version = "4.0", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+anyhow = "1.0"
+uuid = { version = "1.0", features = ["v4"] }
+tonic = "0.10"
+async-trait = "0.1"
+futures = "0.3"

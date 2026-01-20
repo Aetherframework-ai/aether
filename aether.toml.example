@@ -1,0 +1,41 @@
+# Aether Configuration Example
+# Copy this file to aether.toml and customize according to your needs
+
+[server]
+host = "0.0.0.0"
+port = 8080
+workers = 4
+
+[database]
+url = "sqlite://./aether.db"
+max_connections = 10
+
+[storage]
+type = "filesystem"
+path = "./storage"
+backup_interval = "1h"
+
+[logging]
+level = "info"
+format = "json"
+output = "stdout"
+
+[workflows]
+max_concurrent = 100
+timeout = "30m"
+retry_attempts = 3
+retry_delay = "5s"
+
+[monitoring]
+enable_metrics = true
+metrics_port = 9090
+enable_tracing = true
+
+[security]
+enable_auth = false
+jwt_secret = "your-secret-key"
+token_expiry = "24h"
+
+[extensions]
+enabled = []
+paths = ["./extensions"]
