@@ -1,0 +1,49 @@
+# sdks/python/pyproject.toml
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aether-sdk"
+version = "0.1.0"
+description = "Python SDK for Aether workflow engine"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "aiohttp>=3.9.0",
+    "grpcio>=1.59.0",
+    "grpcio-tools>=1.59.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "black", "isort", "mypy"]
+
+[project.urls]
+Homepage = "https://github.com/your-org/aether"
+Repository = "https://github.com/your-org/aether"
+Issues = "https://github.com/your-org/aether/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
