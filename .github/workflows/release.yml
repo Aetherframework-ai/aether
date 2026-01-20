@@ -32,7 +32,40 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN || secrets.organization.NPM_TOKEN }}
         run: |
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > $HOME/.npmrc
+          chmod 600 $HOME/.npmrc
+          cat $HOME/.npmrc
+          echo "HOME=$HOME"
+          ls -la $HOME/.npmrc
+
+      - name: Debug - Check NPM_TOKEN
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN || secrets.organization.NPM_TOKEN }}
+        run: |
+          echo "=== NPM_TOKEN Debug ==="
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "✅ NPM_TOKEN is set"
+            echo "Length: ${#NPM_TOKEN}"
+            echo "Prefix: ${NPM_TOKEN:0:15}..."
+            
+            # Test token validity
+            echo ""
+            echo "=== Testing NPM Token ==="
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $NPM_TOKEN" https://registry.npmjs.org/-/whoami)
+            echo "HTTP Response: $RESPONSE"
+            if [ "$RESPONSE" = "200" ]; then
+              echo "✅ Token is VALID"
+              curl -s -H "Authorization: Bearer $NPM_TOKEN" https://registry.npmjs.org/-/whoami
+            else
+              echo "❌ Token is INVALID"
+            fi
+          else
+            echo "❌ NPM_TOKEN is NOT set"
+          fi
+          
+          echo ""
+          echo "=== Verify .npmrc ==="
+          cat $HOME/.npmrc || echo "No .npmrc file"
 
       - name: Install dependencies
         run: npm ci
