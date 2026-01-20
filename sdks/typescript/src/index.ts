@@ -38,6 +38,11 @@ export interface ResourceRef {
   serviceName?: string;
 }
 
+// Helper function to convert string to ResourceRef
+export function ref(name: string, serviceName?: string): ResourceRef {
+  return { name, serviceName };
+}
+
 export type ResourceType = 'step' | 'activity' | 'workflow';
 
 // ========== Activity Options ==========
@@ -50,11 +55,11 @@ export interface ActivityOptions {
 // ========== Workflow Context ==========
 
 export interface WorkflowContext {
-  // Execute a step (local or remote)
-  step: <T>(ref: ResourceRef, input: any) => Promise<T>;
+  // Execute a step (local or remote) - accepts string or ResourceRef
+  step: <T>(ref: string | ResourceRef, input: any) => Promise<T>;
   
-  // Execute an activity (local or remote)
-  activity: <T>(ref: ResourceRef, input: any, options?: ActivityOptions) => Promise<T>;
+  // Execute an activity (local or remote) - accepts string or ResourceRef
+  activity: <T>(ref: string | ResourceRef, input: any, options?: ActivityOptions) => Promise<T>;
   
   // Execute steps in parallel
   parallel: <T>(steps: (() => Promise<T>)[]) => Promise<T[]>;
@@ -62,8 +67,8 @@ export interface WorkflowContext {
   // Pause execution
   sleep: (duration: { minutes?: number; hours?: number; seconds?: number }) => Promise<void>;
   
-  // Execute a child workflow (local or remote)
-  child: <T>(ref: ResourceRef, args: any[]) => Promise<T>;
+  // Execute a child workflow (local or remote) - accepts string or ResourceRef
+  child: <T>(ref: string | ResourceRef, args: any[]) => Promise<T>;
 }
 
 type WorkflowFunction<T> = (ctx: WorkflowContext, ...args: any[]) => Promise<T>;

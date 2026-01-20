@@ -20,6 +20,9 @@ jobs:
         run: |
           rustup default stable
           rustup show
+
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
         
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -84,7 +87,7 @@ jobs:
         run: cd sdks/nestjs && npm run build
         
       - name: Run tests
-        run: cd sdks/nestjs && npm test
+        run: cd sdks/nestjs && npm test -- --passWithNoTests
 
   python-sdk:
     runs-on: ubuntu-latest

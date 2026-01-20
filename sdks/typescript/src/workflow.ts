@@ -1,6 +1,11 @@
 import { Client } from './client';
 import { AetherConfig, ResourceRef, ActivityOptions } from './index';
 
+// Helper to convert string to ResourceRef
+function toResourceRef(ref: string | ResourceRef): ResourceRef {
+  return typeof ref === 'string' ? { name: ref } : ref;
+}
+
 export class Workflow<T> {
   private fn: any;
   private config: AetherConfig;
@@ -36,33 +41,35 @@ export class Workflow<T> {
     
     return {
       // Execute a step (local or remote)
-      step: async function<T>(ref: ResourceRef, input: any): Promise<T> {
-        if (ref.serviceName) {
+      step: async function<T>(ref: string | ResourceRef, input: any): Promise<T> {
+        const resource = toResourceRef(ref);
+        if (resource.serviceName) {
           // Remote step - call via gRPC
           return await self.client.executeRemoteStep(
-            ref.serviceName,
-            ref.name,
+            resource.serviceName,
+            resource.name,
             input
           );
         } else {
           // Local step - not supported in this version
-          throw new Error(`Local step '${ref.name}' not implemented. Use remote service.`);
+          throw new Error(`Local step '${resource.name}' not implemented. Use remote service.`);
         }
       },
       
       // Execute an activity (local or remote)
-      activity: async function<T>(ref: ResourceRef, input: any, options?: ActivityOptions): Promise<T> {
-        if (ref.serviceName) {
+      activity: async function<T>(ref: string | ResourceRef, input: any, options?: ActivityOptions): Promise<T> {
+        const resource = toResourceRef(ref);
+        if (resource.serviceName) {
           // Remote activity - call via gRPC
           return await self.client.executeRemoteActivity(
-            ref.serviceName,
-            ref.name,
+            resource.serviceName,
+            resource.name,
             input,
             options
           );
         } else {
           // Local activity - not supported in this version
-          throw new Error(`Local activity '${ref.name}' not implemented. Use remote service.`);
+          throw new Error(`Local activity '${resource.name}' not implemented. Use remote service.`);
         }
       },
       
@@ -81,17 +88,18 @@ export class Workflow<T> {
       },
       
       // Execute a child workflow (local or remote)
-      child: async function<T>(ref: ResourceRef, args: any[]): Promise<T> {
-        if (ref.serviceName) {
+      child: async function<T>(ref: string | ResourceRef, args: any[]): Promise<T> {
+        const resource = toResourceRef(ref);
+        if (resource.serviceName) {
           // Remote workflow - call via gRPC
           return await self.client.executeRemoteWorkflow(
-            ref.serviceName,
-            ref.name,
+            resource.serviceName,
+            resource.name,
             args
           );
         } else {
           // Local workflow - not supported in this version
-          throw new Error(`Local workflow '${ref.name}' not implemented. Use remote service.`);
+          throw new Error(`Local workflow '${resource.name}' not implemented. Use remote service.`);
         }
       },
     };
