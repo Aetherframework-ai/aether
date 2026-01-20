@@ -80,7 +80,7 @@ impl<P: Persistence> Scheduler<P> {
                     self.find_next_step(&workflow).await {
                     
                     // Check if this worker can handle this task
-                    if self.can_worker_handle_task(worker, &target_service, &target_resource, resource_type) {
+                    if self.can_worker_handle_task(worker, &target_service, &target_resource, resource_type, &workflow.workflow_type) {
                         let task = Task {
                             task_id: format!("{}-{}", workflow.id, step_name),
                             workflow_id: workflow.id.clone(),
@@ -104,10 +104,10 @@ impl<P: Persistence> Scheduler<P> {
     }
 
     fn can_worker_handle_task(&self, worker: &WorkerInfo, target_service: &Option<String>, 
-                               target_resource: &Option<String>, resource_type: ResourceType) -> bool {
-        // If no target service specified, any worker can handle
+                               target_resource: &Option<String>, resource_type: ResourceType, workflow_type: &str) -> bool {
+        // If no target service specified, check if worker supports this workflow type
         if target_service.is_none() {
-            return worker.workflow_types.is_empty() || 
+            return worker.workflow_types.contains(&workflow_type.to_string()) ||
                    worker.resources.iter().any(|(name, rtype)| 
                        rtype == &resource_type && target_resource.as_ref().map_or(true, |r| r == name));
         }
