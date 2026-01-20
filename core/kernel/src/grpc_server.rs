@@ -9,12 +9,28 @@ use crate::proto::worker_service_server::WorkerService as GrpcWorkerService;
 use crate::scheduler::Scheduler;
 use crate::persistence::Persistence;
 use crate::state_machine::{Workflow, WorkflowState};
-use tonic::{Request, Response, Status};
-use tokio::sync::RwLock;
+use crate::task::ResourceType;
+use std::convert::TryFrom;
 use std::collections::HashMap;
+use tokio::sync::RwLock;
+use tonic::{Request, Response, Status};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio::sync::mpsc;
 use uuid::Uuid;
+
+// Convert from proto i32 to internal ResourceType
+impl TryFrom<i32> for ResourceType {
+    type Error = String;
+    
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(ResourceType::Step),
+            1 => Ok(ResourceType::Activity),
+            2 => Ok(ResourceType::Workflow),
+            _ => Err(format!("Unknown resource type: {}", value)),
+        }
+    }
+}
 
 pub struct ClientService<P: Persistence> {
     scheduler: Scheduler<P>,
@@ -177,10 +193,27 @@ where
     ) -> Result<Response<RegisterResponse>, Status> {
         let request = request.into_inner();
 
-        self.scheduler.register_worker(request.worker_id, request.workflow_types).await;
+        // Convert proto resources to internal format
+        let resources: Result<Vec<(String, crate::task::ResourceType)>, String> = request.provides
+            .into_iter()
+            .map(|r| -> Result<(String, crate::task::ResourceType), String> {
+                Ok((r.name, r.r#type.try_into().map_err(|e| e)?))
+            })
+            .collect();
+        
+        let resources = resources.map_err(|e| Status::invalid_argument(e))?;
+        
+        self.scheduler.register_worker(
+            request.worker_id,
+            request.service_name,
+            request.group,
+            request.language,
+            resources,
+        ).await;
 
         Ok(Response::new(RegisterResponse {
             server_id: "aether-server-1".to_string(),
+            supported_workflow_types: vec![],
         }))
     }
 
@@ -201,6 +234,9 @@ where
                     task_id: task.task_id,
                     workflow_id: task.workflow_id,
                     step_name: task.step_name,
+                    target_service: task.target_service.unwrap_or_default(),
+                    target_resource: task.target_resource.unwrap_or_default(),
+                    resource_type: task.resource_type as i32,
                     input: task.input,
                     retry: task.retry.map(|r| crate::proto::RetryPolicy {
                         max_attempts: r.max_attempts as i32,

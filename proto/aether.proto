@@ -18,6 +18,26 @@ service WorkerService {
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 }
 
+// ========== Resource Types ==========
+enum ResourceType {
+  STEP = 0;
+  ACTIVITY = 1;
+  WORKFLOW = 2;
+}
+
+message ResourceMetadata {
+  int32 max_attempts = 1;
+  int32 timeout = 2;
+  string input_schema = 3;
+  string output_schema = 4;
+}
+
+message ServiceResource {
+  string name = 1;
+  ResourceType type = 2;
+  ResourceMetadata metadata = 3;
+}
+
 // ========== Admin API ==========
 service AdminService {
   rpc ListWorkflows(ListRequest) returns (stream WorkflowInfo);
@@ -60,8 +80,11 @@ message Task {
   string task_id = 1;
   string workflow_id = 2;
   string step_name = 3;
-  bytes input = 4;
-  RetryPolicy retry = 5;
+  string target_service = 4;
+  string target_resource = 5;
+  ResourceType resource_type = 6;
+  bytes input = 7;
+  RetryPolicy retry = 8;
 }
 
 message RetryPolicy {
@@ -82,11 +105,15 @@ message CompleteStepResponse {
 
 message RegisterRequest {
   string worker_id = 1;
-  repeated string workflow_types = 2;
+  string service_name = 2;
+  string group = 3;
+  repeated string language = 4;
+  repeated ServiceResource provides = 5;
 }
 
 message RegisterResponse {
   string server_id = 1;
+  repeated string supported_workflow_types = 2;
 }
 
 message PollRequest {
