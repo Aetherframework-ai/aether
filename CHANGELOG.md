@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Aetherframework-ai/aether/compare/v1.0.0...v1.0.1) (2026-01-20)
+
+
+### Bug Fixes
+
+* add description and license fields to Cargo.toml for crates.io ([#11](https://github.com/Aetherframework-ai/aether/issues/11)) ([c962544](https://github.com/Aetherframework-ai/aether/commit/c9625444706150c614c8ed19127574c56937001a))
+
 # 1.0.0 (2026-01-20)
 
 
