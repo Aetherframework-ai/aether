@@ -4,196 +4,31 @@ name: Release
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Manual version (leave empty for auto)'
-        required: false
-        default: ''
 
 permissions:
   contents: write
   packages: write
 
 jobs:
-  version:
+  release:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
-      - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v1
-        with:
-          versionSpec: '5.x'
-          
-      - name: Determine version
-        id: version
-        uses: gittools/actions/gitversion/execute@v1
-        with:
-          useConfigFile: true
-          targetBranch: main
-          
-      - name: Set version output
-        id: version
-        run: |
-          VERSION="${{ steps.version.outputs.semVer }}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
 
-  prepare:
-    needs: version
-    runs-on: ubuntu-latest
-    outputs:
-      publish-rust: ${{ steps.check-changes.outputs.rust }}
-      publish-npm: ${{ steps.check-changes.outputs.npm }}
-      publish-python: ${{ steps.check-changes.outputs.python }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          
-      - name: Check for changes
-        id: check-changes
-        run: |
-          RUST=false
-          NPM=false
-          PYTHON=false
-          
-          if git diff --name-only HEAD~1 | grep -E '\.(rs|toml)$' > /dev/null; then
-            RUST=true
-          fi
-          if git diff --name-only HEAD~1 | grep -E 'sdks/(typescript|nestjs)/' > /dev/null; then
-            NPM=true
-          fi
-          if git diff --name-only HEAD~1 | grep -E 'sdks/python/' > /dev/null; then
-            PYTHON=true
-          fi
-          
-          echo "rust=$RUST" >> $GITHUB_OUTPUT
-          echo "npm=$NPM" >> $GITHUB_OUTPUT
-          echo "python=$PYTHON" >> $GITHUB_OUTPUT
-          
-      - name: Update Rust versions
-        if: needs.version.outputs.publish-rust == 'true'
-        run: |
-          VERSION="${{ needs.version.outputs.version }}"
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" core/kernel/Cargo.toml
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" cli/Cargo.toml
-          
-      - name: Update NPM versions
-        if: needs.version.outputs.publish-npm == 'true'
-        run: |
-          VERSION="${{ needs.version.outputs.version }}"
-          cd sdks/typescript && npm version $VERSION --no-git-tag-version
-          cd ../nestjs && npm version $VERSION --no-git-tag-version
-          
-      - name: Update Python version
-        if: needs.version.outputs.publish-python == 'true'
-        run: |
-          VERSION="${{ needs.version.outputs.version }}"
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" sdks/python/pyproject.toml
-          
-      - name: Commit version updates
-        if: needs.version.outputs.publish-rust == 'true' || needs.version.outputs.publish-npm == 'true' || needs.version.outputs.publish-python == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "chore: bump version to ${{ needs.version.outputs.version }}" || echo "No changes to commit"
-
-      - name: Push version updates
-        if: needs.version.outputs.publish-rust == 'true' || needs.version.outputs.publish-npm == 'true' || needs.version.outputs.publish-python == 'true'
-        run: |
-          git push origin main
-
-  publish-rust:
-    needs: [version, prepare]
-    if: needs.prepare.outputs.publish-rust == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust
-        run: rustup show all defaults
-
-      - name: Publish to crates.io
-        run: |
-          cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-
-  publish-npm:
-    needs: [version, prepare]
-    if: needs.prepare.outputs.publish-npm == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
-          
-      - name: Publish @aether/sdk
-        if: needs.prepare.outputs.publish-npm == 'true'
-        run: |
-          cd sdks/typescript
-          npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          
-      - name: Publish @aether/nestjs
-        if: needs.prepare.outputs.publish-npm == 'true'
-        run: |
-          cd sdks/nestjs
-          npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  publish-python:
-    needs: [version, prepare]
-    if: needs.prepare.outputs.publish-python == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          
-      - name: Build package
-        run: |
-          cd sdks/python
-          python -m build
-          
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Install dependencies
+        run: npm ci
 
-  create-github-release:
-    needs: [version, publish-rust, publish-npm, publish-python]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ needs.version.outputs.version }}
-          name: Release v${{ needs.version.outputs.version }}
-          body: |
-            ## Changes
-
-            See [CHANGELOG.md](./CHANGELOG.md) for details.
-          draft: false
-          prerelease: false
+      - name: Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release
