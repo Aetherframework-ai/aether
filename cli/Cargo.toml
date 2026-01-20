@@ -3,7 +3,7 @@ name = "aether-cli"
 version = "0.1.0"
 edition = "2021"
 description = "CLI tool for Aether workflow engine"
-license = "MIT"
+license = "Apache-2.0"
 
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }

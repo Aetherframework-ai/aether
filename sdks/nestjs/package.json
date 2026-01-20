@@ -2,6 +2,7 @@
   "name": "@aether/nestjs",
   "version": "0.1.0",
   "description": "NestJS SDK for Aether workflow engine",
+  "license": "Apache-2.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
