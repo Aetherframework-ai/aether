@@ -1,5 +1,109 @@
+use aetherframework_kernel::persistence::l0_memory::L0MemoryStore;
+use aetherframework_kernel::persistence::l1_snapshot::L1SnapshotStore;
+use aetherframework_kernel::persistence::l2_state_action_log::L2StateActionStore;
+use aetherframework_kernel::persistence::{Persistence, PersistenceLevel};
+use aetherframework_kernel::scheduler::Scheduler;
+use aetherframework_kernel::server;
+use aetherframework_kernel::state_machine::{Workflow, WorkflowState};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+
+/// Wrapper enum for persistence backends
+enum PersistenceBackend {
+    L0Memory(L0MemoryStore),
+    L1Snapshot(L1SnapshotStore),
+    L2StateActionLog(L2StateActionStore),
+}
+
+impl Clone for PersistenceBackend {
+    fn clone(&self) -> Self {
+        match self {
+            PersistenceBackend::L0Memory(_) => PersistenceBackend::L0Memory(L0MemoryStore::new()),
+            PersistenceBackend::L1Snapshot(_) => {
+                PersistenceBackend::L1Snapshot(L1SnapshotStore::new(100))
+            }
+            PersistenceBackend::L2StateActionLog(_) => {
+                PersistenceBackend::L2StateActionLog(L2StateActionStore::new())
+            }
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl Persistence for PersistenceBackend {
+    async fn save_workflow(&self, workflow: &Workflow) -> anyhow::Result<()> {
+        match self {
+            PersistenceBackend::L0Memory(store) => store.save_workflow(workflow).await,
+            PersistenceBackend::L1Snapshot(store) => store.save_workflow(workflow).await,
+            PersistenceBackend::L2StateActionLog(store) => store.save_workflow(workflow).await,
+        }
+    }
+
+    async fn get_workflow(&self, id: &str) -> anyhow::Result<Option<Workflow>> {
+        match self {
+            PersistenceBackend::L0Memory(store) => store.get_workflow(id).await,
+            PersistenceBackend::L1Snapshot(store) => store.get_workflow(id).await,
+            PersistenceBackend::L2StateActionLog(store) => store.get_workflow(id).await,
+        }
+    }
+
+    async fn list_workflows(&self, workflow_type: Option<&str>) -> anyhow::Result<Vec<Workflow>> {
+        match self {
+            PersistenceBackend::L0Memory(store) => store.list_workflows(workflow_type).await,
+            PersistenceBackend::L1Snapshot(store) => store.list_workflows(workflow_type).await,
+            PersistenceBackend::L2StateActionLog(store) => {
+                store.list_workflows(workflow_type).await
+            }
+        }
+    }
+
+    async fn update_workflow_state(&self, id: &str, state: WorkflowState) -> anyhow::Result<()> {
+        match self {
+            PersistenceBackend::L0Memory(store) => store.update_workflow_state(id, state).await,
+            PersistenceBackend::L1Snapshot(store) => store.update_workflow_state(id, state).await,
+            PersistenceBackend::L2StateActionLog(store) => {
+                store.update_workflow_state(id, state).await
+            }
+        }
+    }
+
+    async fn save_step_result(
+        &self,
+        workflow_id: &str,
+        step_name: &str,
+        result: Vec<u8>,
+    ) -> anyhow::Result<()> {
+        match self {
+            PersistenceBackend::L0Memory(store) => {
+                store.save_step_result(workflow_id, step_name, result).await
+            }
+            PersistenceBackend::L1Snapshot(store) => {
+                store.save_step_result(workflow_id, step_name, result).await
+            }
+            PersistenceBackend::L2StateActionLog(store) => {
+                store.save_step_result(workflow_id, step_name, result).await
+            }
+        }
+    }
+
+    async fn get_step_result(
+        &self,
+        workflow_id: &str,
+        step_name: &str,
+    ) -> anyhow::Result<Option<Vec<u8>>> {
+        match self {
+            PersistenceBackend::L0Memory(store) => {
+                store.get_step_result(workflow_id, step_name).await
+            }
+            PersistenceBackend::L1Snapshot(store) => {
+                store.get_step_result(workflow_id, step_name).await
+            }
+            PersistenceBackend::L2StateActionLog(store) => {
+                store.get_step_result(workflow_id, step_name).await
+            }
+        }
+    }
+}
 
 #[derive(Parser, Debug)]
 #[command(name = "aether")]
@@ -119,9 +223,66 @@ async fn serve_command(
     println!("gRPC Port: {}", grpc_port);
     println!("HTTP Port: {}", http_port);
     println!("Persistence: {}", persistence);
+    println!();
 
-    // TODO: 实现服务器启动逻辑
-    println!("Server started successfully!");
+    // 创建数据目录
+    if let Some(parent) = db.parent() {
+        if !parent.exists() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+    }
+
+    // 解析持久化模式（目前只支持 memory，其他模式需要后续实现文件持久化）
+    let persistence_level = match persistence.to_lowercase().as_str() {
+        "memory" => PersistenceLevel::L0Memory,
+        "snapshot" => {
+            println!("⚠️  Snapshot persistence mode not yet implemented, using memory mode.");
+            PersistenceLevel::L0Memory
+        }
+        "state-action-log" => {
+            println!(
+                "⚠️  State-Action-Log persistence mode not yet implemented, using memory mode."
+            );
+            PersistenceLevel::L0Memory
+        }
+        _ => {
+            eprintln!(
+                "Unknown persistence mode: {}. Using 'memory' instead.",
+                persistence
+            );
+            PersistenceLevel::L0Memory
+        }
+    };
+
+    // 创建持久化层
+    let persistence = match persistence_level {
+        PersistenceLevel::L0Memory => {
+            println!("📦 Using L0 Memory persistence (no durability)");
+            PersistenceBackend::L0Memory(L0MemoryStore::new())
+        }
+        PersistenceLevel::L1Snapshot => {
+            println!("📦 Using L1 Snapshot persistence");
+            PersistenceBackend::L1Snapshot(L1SnapshotStore::new(100))
+        }
+        PersistenceLevel::L2StateActionLog => {
+            println!("📦 Using L2 State-Action-Log persistence (full durability)");
+            PersistenceBackend::L2StateActionLog(L2StateActionStore::new())
+        }
+    };
+
+    // 创建调度器
+    let scheduler = Scheduler::new(persistence);
+
+    // 启动 gRPC 服务器
+    let addr = format!("0.0.0.0:{}", grpc_port);
+    println!();
+    println!("🚀 Aether server starting on {}", addr);
+    println!();
+    println!("Press Ctrl+C to stop the server");
+    println!();
+
+    // 使用 aetherframework-kernel 的服务器启动函数
+    server::start_server(scheduler, &addr).await?;
 
     Ok(())
 }
