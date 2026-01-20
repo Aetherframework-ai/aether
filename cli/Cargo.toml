@@ -5,6 +5,14 @@ edition = "2021"
 description = "CLI tool for Aether workflow engine"
 license = "Apache-2.0"
 
+[[bin]]
+name = "aether"
+path = "src/main.rs"
+
+[[bin]]
+name = "ae"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
 tonic = { version = "0.10", features = ["transport"] }
