@@ -9,6 +9,12 @@ pub struct L0MemoryStore {
     step_results: RwLock<HashMap<String, HashMap<String, Vec<u8>>>>,
 }
 
+impl Default for L0MemoryStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl L0MemoryStore {
     pub fn new() -> Self {
         L0MemoryStore {

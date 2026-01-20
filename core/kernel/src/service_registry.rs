@@ -1,4 +1,4 @@
-use crate::task::{ResourceMetadata, ResourceType, ServiceResource};
+use crate::task::{ResourceType, ServiceResource};
 use std::collections::HashMap;
 use std::sync::RwLock;
 
@@ -133,6 +133,7 @@ impl ServiceRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::task::ResourceMetadata;
 
     #[test]
     fn test_register_service() {

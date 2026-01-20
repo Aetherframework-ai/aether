@@ -8,6 +8,7 @@ use tokio::sync::RwLock;
 pub struct L1SnapshotStore {
     workflows: RwLock<HashMap<String, Workflow>>,
     step_results: RwLock<HashMap<String, HashMap<String, Vec<u8>>>>,
+    #[allow(dead_code)]
     snapshot_interval: usize,
 }
 

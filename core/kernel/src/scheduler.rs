@@ -129,7 +129,7 @@ impl<P: Persistence> Scheduler<P> {
         if target_service.is_none() {
             return worker.workflow_types.contains(&workflow_type.to_string())
                 || worker.resources.iter().any(|(name, rtype)| {
-                    rtype == &resource_type && target_resource.as_ref().map_or(true, |r| r == name)
+                    rtype == &resource_type && target_resource.as_ref().is_none_or(|r| r == name)
                 });
         }
 
@@ -143,7 +143,7 @@ impl<P: Persistence> Scheduler<P> {
 
         // Check if worker has matching resources
         worker.resources.iter().any(|(name, rtype)| {
-            rtype == &resource_type && target_resource.as_ref().map_or(true, |r| r == name)
+            rtype == &resource_type && target_resource.as_ref().is_none_or(|r| r == name)
         })
     }
 

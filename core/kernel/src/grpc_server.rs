@@ -32,8 +32,10 @@ impl TryFrom<i32> for ResourceType {
     }
 }
 
+#[allow(dead_code)]
 pub struct ClientService<P: Persistence> {
     scheduler: Scheduler<P>,
+    #[allow(clippy::type_complexity)]
     active_workflows:
         RwLock<HashMap<String, tokio::sync::oneshot::Sender<Result<Vec<u8>, String>>>>,
 }
@@ -218,11 +220,11 @@ where
             .provides
             .into_iter()
             .map(|r| -> Result<(String, crate::task::ResourceType), String> {
-                Ok((r.name, r.r#type.try_into().map_err(|e| e)?))
+                Ok((r.name, r.r#type.try_into()?))
             })
             .collect();
 
-        let resources = resources.map_err(|e| Status::invalid_argument(e))?;
+        let resources = resources.map_err(Status::invalid_argument)?;
 
         self.scheduler
             .register_worker(
@@ -312,6 +314,7 @@ where
         Ok(Response::new(CompleteStepResponse { success: true }))
     }
 
+    #[allow(unused_variables)]
     async fn heartbeat(
         &self,
         request: Request<HeartbeatRequest>,

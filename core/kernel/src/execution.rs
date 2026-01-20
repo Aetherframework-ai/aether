@@ -4,6 +4,12 @@ pub struct ExecutionContext {
     // Execution context data
 }
 
+impl Default for ExecutionContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExecutionContext {
     pub fn new() -> Self {
         ExecutionContext {}

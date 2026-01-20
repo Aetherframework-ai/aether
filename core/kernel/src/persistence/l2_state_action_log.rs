@@ -5,9 +5,11 @@ use prost_types::Timestamp;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
 
+#[allow(dead_code)]
 pub struct L2StateActionStore {
     workflows: RwLock<HashMap<String, Workflow>>,
     step_results: RwLock<HashMap<String, HashMap<String, Vec<u8>>>>,
+    #[allow(dead_code)]
     action_logs: RwLock<Vec<ActionLog>>,
 }
 
@@ -19,6 +21,12 @@ pub struct ActionLog {
     pub timestamp: Timestamp,
     pub input: Vec<u8>,
     pub output: Vec<u8>,
+}
+
+impl Default for L2StateActionStore {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl L2StateActionStore {
