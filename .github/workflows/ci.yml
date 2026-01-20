@@ -56,7 +56,12 @@ jobs:
           
       - name: Install dependencies
         run: cd sdks/typescript && npm ci
-        
+
+      - name: Install Semantic Release
+        if: runner.os == 'Linux'
+        run: |
+          npm install -g semantic-release @semantic-release/cli
+
       - name: Build
         run: cd sdks/typescript && npm run build
         
@@ -77,7 +82,12 @@ jobs:
           
       - name: Install dependencies
         run: cd sdks/nestjs && npm ci
-        
+
+      - name: Install Semantic Release
+        if: runner.os == 'Linux'
+        run: |
+          npm install -g semantic-release @semantic-release/cli
+
       - name: Build
         run: cd sdks/nestjs && npm run build
         
