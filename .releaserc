@@ -1,0 +1,24 @@
+{
+  "branches": ["main", "develop"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/changelog",
+    ["@semantic-release/npm", {
+      "pkgRoot": "sdks/typescript"
+    }],
+    ["@semantic-release/npm", {
+      "pkgRoot": "sdks/nestjs"
+    }],
+    ["@semantic-release/exec", {
+      "prepareCmd": "sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' ${PLUGIN_PACKAGE_ROOT}/../core/kernel/Cargo.toml && sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' ${PLUGIN_PACKAGE_ROOT}/../cli/Cargo.toml"
+    }],
+    ["@semantic-release/git", {
+      "assets": ["CHANGELOG.md"],
+      "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+    }],
+    ["@semantic-release/github", {
+      "assets": []
+    }]
+  ]
+}
