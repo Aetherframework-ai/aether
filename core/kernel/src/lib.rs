@@ -10,6 +10,7 @@ pub mod task;
 pub mod worker;
 pub mod workflow;
 
+#[rustfmt::skip]
 #[path = "proto/aether.v1.rs"]
 pub mod proto;
 
