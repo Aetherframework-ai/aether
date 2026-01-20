@@ -4,6 +4,18 @@
   "description": "TypeScript SDK for Aether workflow engine",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "aether",
+    "workflow",
+    "orchestration",
+    "grpc"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "jest",
