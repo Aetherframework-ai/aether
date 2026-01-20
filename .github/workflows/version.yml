@@ -1,0 +1,41 @@
+# .github/workflows/version.yml
+name: Version
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Manual version bump (major|minor|patch)'
+        required: false
+        default: 'patch'
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v1
+        with:
+          versionSpec: '5.x'
+          
+      - name: Determine version
+        id: version
+        uses: gittools/actions/gitversion/execute@v1
+        with:
+          useConfigFile: true
+          targetBranch: main
+          
+      - name: Output version
+        run: |
+          echo "Version: ${{ steps.version.outputs.semVer }}"
+          echo "Tag: ${{ steps.version.outputs.fullTag }}"
