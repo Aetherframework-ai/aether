@@ -32,11 +32,13 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN || secrets.organization.NPM_TOKEN }}
         run: |
+          # Write to both locations (actions/setup-node creates one in _temp)
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > $HOME/.npmrc
-          chmod 600 $HOME/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > /home/runner/work/_temp/.npmrc
+          chmod 600 $HOME/.npmrc /home/runner/work/_temp/.npmrc
+          echo "=== .npmrc files ==="
           cat $HOME/.npmrc
-          echo "HOME=$HOME"
-          ls -la $HOME/.npmrc
+          cat /home/runner/work/_temp/.npmrc
 
       - name: Debug - Check NPM_TOKEN
         env:
@@ -62,10 +64,6 @@ jobs:
           else
             echo "❌ NPM_TOKEN is NOT set"
           fi
-          
-          echo ""
-          echo "=== Verify .npmrc ==="
-          cat $HOME/.npmrc || echo "No .npmrc file"
 
       - name: Install dependencies
         run: npm ci
