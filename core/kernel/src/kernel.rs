@@ -4,6 +4,12 @@ pub struct AetherKernel {
     // Kernel state and configuration
 }
 
+impl Default for AetherKernel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AetherKernel {
     pub fn new() -> Self {
         AetherKernel {}

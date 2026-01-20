@@ -133,6 +133,7 @@ impl ServiceRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::task::ResourceMetadata;
 
     #[test]
     fn test_register_service() {

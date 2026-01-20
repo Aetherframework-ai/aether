@@ -1,8 +1,8 @@
 use crate::grpc_server::ClientService;
 use crate::persistence::Persistence;
-use crate::scheduler::Scheduler;
 use crate::proto::client_service_server::ClientServiceServer;
 use crate::proto::worker_service_server::WorkerServiceServer;
+use crate::scheduler::Scheduler;
 use tonic::transport::Server;
 
 pub async fn start_server<P: Persistence + Clone + Send + Sync + 'static>(

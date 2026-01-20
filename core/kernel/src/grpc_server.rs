@@ -1,27 +1,27 @@
+use crate::persistence::Persistence;
+use crate::proto::client_service_server::ClientService as GrpcClientService;
+use crate::proto::worker_service_server::WorkerService as GrpcWorkerService;
 use crate::proto::{
     AwaitResultRequest, CancelRequest, CancelResponse, CompleteStepRequest, CompleteStepResponse,
     GetStatusRequest, HeartbeatRequest, HeartbeatResponse, PollRequest, RegisterRequest,
     RegisterResponse, StartWorkflowRequest, StartWorkflowResponse, Task, WorkflowResult,
     WorkflowStatus,
 };
-use crate::proto::client_service_server::ClientService as GrpcClientService;
-use crate::proto::worker_service_server::WorkerService as GrpcWorkerService;
 use crate::scheduler::Scheduler;
-use crate::persistence::Persistence;
 use crate::state_machine::{Workflow, WorkflowState};
 use crate::task::ResourceType;
-use std::convert::TryFrom;
 use std::collections::HashMap;
-use tokio::sync::RwLock;
-use tonic::{Request, Response, Status};
-use tokio_stream::wrappers::ReceiverStream;
+use std::convert::TryFrom;
 use tokio::sync::mpsc;
+use tokio::sync::RwLock;
+use tokio_stream::wrappers::ReceiverStream;
+use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
 // Convert from proto i32 to internal ResourceType
 impl TryFrom<i32> for ResourceType {
     type Error = String;
-    
+
     fn try_from(value: i32) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(ResourceType::Step),
@@ -32,9 +32,12 @@ impl TryFrom<i32> for ResourceType {
     }
 }
 
+#[allow(dead_code)]
 pub struct ClientService<P: Persistence> {
     scheduler: Scheduler<P>,
-    active_workflows: RwLock<HashMap<String, tokio::sync::oneshot::Sender<Result<Vec<u8>, String>>>>,
+    #[allow(clippy::type_complexity)]
+    active_workflows:
+        RwLock<HashMap<String, tokio::sync::oneshot::Sender<Result<Vec<u8>, String>>>>,
 }
 
 impl<P: Persistence + Clone> Clone for ClientService<P> {
@@ -67,18 +70,20 @@ where
         let request = request.into_inner();
         let workflow_id = Uuid::new_v4().to_string();
 
-        let workflow = Workflow::new(
-            workflow_id.clone(),
-            request.workflow_type,
-            request.input,
-        );
+        let workflow = Workflow::new(workflow_id.clone(), request.workflow_type, request.input);
 
-        self.scheduler.persistence.save_workflow(&workflow).await
+        self.scheduler
+            .persistence
+            .save_workflow(&workflow)
+            .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
         if let Some(started_state) = workflow.state.start() {
-            self.scheduler.persistence.update_workflow_state(&workflow_id, started_state)
-                .await.map_err(|e| Status::internal(e.to_string()))?;
+            self.scheduler
+                .persistence
+                .update_workflow_state(&workflow_id, started_state)
+                .await
+                .map_err(|e| Status::internal(e.to_string()))?;
         }
 
         Ok(Response::new(StartWorkflowResponse {
@@ -92,8 +97,12 @@ where
     ) -> Result<Response<WorkflowStatus>, Status> {
         let request = request.into_inner();
 
-        let workflow = self.scheduler.persistence.get_workflow(&request.workflow_id)
-            .await.map_err(|e| Status::internal(e.to_string()))?
+        let workflow = self
+            .scheduler
+            .persistence
+            .get_workflow(&request.workflow_id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?
             .ok_or_else(|| Status::not_found("Workflow not found"))?;
 
         let state = match workflow.state {
@@ -110,7 +119,9 @@ where
         };
 
         let (result, error, completed_at) = match &workflow.state {
-            WorkflowState::Completed { result } => (result.clone(), String::new(), workflow.updated_at.seconds),
+            WorkflowState::Completed { result } => {
+                (result.clone(), String::new(), workflow.updated_at.seconds)
+            }
             WorkflowState::Failed { error } => (Vec::new(), error.clone(), 0),
             _ => (Vec::new(), String::new(), 0),
         };
@@ -135,8 +146,12 @@ where
         let request = request.into_inner();
         let workflow_id = request.workflow_id;
 
-        let workflow = self.scheduler.persistence.get_workflow(&workflow_id)
-            .await.map_err(|e| Status::internal(e.to_string()))?
+        let workflow = self
+            .scheduler
+            .persistence
+            .get_workflow(&workflow_id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?
             .ok_or_else(|| Status::not_found("Workflow not found"))?;
 
         match workflow.state {
@@ -167,13 +182,20 @@ where
     ) -> Result<Response<CancelResponse>, Status> {
         let request = request.into_inner();
 
-        let workflow = self.scheduler.persistence.get_workflow(&request.workflow_id)
-            .await.map_err(|e| Status::internal(e.to_string()))?
+        let workflow = self
+            .scheduler
+            .persistence
+            .get_workflow(&request.workflow_id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?
             .ok_or_else(|| Status::not_found("Workflow not found"))?;
 
         if let Some(cancelled_state) = workflow.state.cancel() {
-            self.scheduler.persistence.update_workflow_state(&request.workflow_id, cancelled_state)
-                .await.map_err(|e| Status::internal(e.to_string()))?;
+            self.scheduler
+                .persistence
+                .update_workflow_state(&request.workflow_id, cancelled_state)
+                .await
+                .map_err(|e| Status::internal(e.to_string()))?;
         }
 
         Ok(Response::new(CancelResponse { success: true }))
@@ -194,22 +216,25 @@ where
         let request = request.into_inner();
 
         // Convert proto resources to internal format
-        let resources: Result<Vec<(String, crate::task::ResourceType)>, String> = request.provides
+        let resources: Result<Vec<(String, crate::task::ResourceType)>, String> = request
+            .provides
             .into_iter()
             .map(|r| -> Result<(String, crate::task::ResourceType), String> {
-                Ok((r.name, r.r#type.try_into().map_err(|e| e)?))
+                Ok((r.name, r.r#type.try_into()?))
             })
             .collect();
-        
-        let resources = resources.map_err(|e| Status::invalid_argument(e))?;
-        
-        self.scheduler.register_worker(
-            request.worker_id,
-            request.service_name,
-            request.group,
-            request.language,
-            resources,
-        ).await;
+
+        let resources = resources.map_err(Status::invalid_argument)?;
+
+        self.scheduler
+            .register_worker(
+                request.worker_id,
+                request.service_name,
+                request.group,
+                request.language,
+                resources,
+            )
+            .await;
 
         Ok(Response::new(RegisterResponse {
             server_id: "aether-server-1".to_string(),
@@ -223,7 +248,11 @@ where
     ) -> Result<Response<Self::PollTasksStream>, Status> {
         let request = request.into_inner();
         let worker_id = request.worker_id;
-        let max_tasks = if request.max_tasks > 0 { request.max_tasks as usize } else { 10 };
+        let max_tasks = if request.max_tasks > 0 {
+            request.max_tasks as usize
+        } else {
+            10
+        };
 
         let tasks = self.scheduler.poll_tasks(&worker_id, max_tasks).await;
 
@@ -259,23 +288,33 @@ where
         let request = request.into_inner();
 
         if !request.error.is_empty() {
-            let workflow = self.scheduler.persistence.get_workflow(&request.task_id).await
+            let workflow = self
+                .scheduler
+                .persistence
+                .get_workflow(&request.task_id)
+                .await
                 .map_err(|e| Status::internal(e.to_string()))?;
 
             if let Some(workflow) = workflow {
                 if let Some(failed_state) = workflow.state.fail(request.error.clone()) {
-                    self.scheduler.persistence.update_workflow_state(&workflow.id, failed_state)
-                        .await.map_err(|e| Status::internal(e.to_string()))?;
+                    self.scheduler
+                        .persistence
+                        .update_workflow_state(&workflow.id, failed_state)
+                        .await
+                        .map_err(|e| Status::internal(e.to_string()))?;
                 }
             }
         } else {
-            self.scheduler.complete_task(&request.task_id, request.result)
-                .await.map_err(|e| Status::internal(e.to_string()))?;
+            self.scheduler
+                .complete_task(&request.task_id, request.result)
+                .await
+                .map_err(|e| Status::internal(e.to_string()))?;
         }
 
         Ok(Response::new(CompleteStepResponse { success: true }))
     }
 
+    #[allow(unused_variables)]
     async fn heartbeat(
         &self,
         request: Request<HeartbeatRequest>,

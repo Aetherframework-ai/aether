@@ -4,6 +4,18 @@
   "description": "NestJS SDK for Aether workflow engine",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "aether",
+    "nestjs",
+    "workflow",
+    "orchestration"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "jest",
@@ -31,5 +43,16 @@
     "@nestjs/common": ">=10.0.0",
     "@nestjs/core": ">=10.0.0",
     "@aether/sdk": ">=0.1.0"
+  },
+  "release": {
+    "branches": ["main"],
+    "plugins": [
+      ["@semantic-release/npm", {
+        "pkgRoot": "."
+      }],
+      ["@semantic-release/github", {
+        "assets": []
+      }]
+    ]
   }
 }
