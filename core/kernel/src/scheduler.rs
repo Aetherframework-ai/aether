@@ -1,5 +1,6 @@
 use crate::state_machine::{Workflow, WorkflowState};
-use crate::task::Task;
+use crate::task::{Task, ResourceType};
+use crate::service_registry::ServiceRegistry;
 use crate::persistence::Persistence;
 use std::collections::HashMap;
 use tokio::sync::{Mutex, RwLock};
@@ -7,6 +8,7 @@ use tokio::time::Duration;
 
 pub struct Scheduler<P: Persistence> {
     pub persistence: P,
+    pub service_registry: ServiceRegistry,
     active_workers: RwLock<HashMap<String, WorkerInfo>>,
     running_tasks: Mutex<HashMap<String, Task>>,
     poll_interval: Duration,
@@ -16,6 +18,7 @@ impl<P: Persistence + Clone> Clone for Scheduler<P> {
     fn clone(&self) -> Self {
         Scheduler {
             persistence: self.persistence.clone(),
+            service_registry: ServiceRegistry::new(),
             active_workers: RwLock::new(HashMap::new()),
             running_tasks: Mutex::new(HashMap::new()),
             poll_interval: self.poll_interval,
@@ -26,7 +29,10 @@ impl<P: Persistence + Clone> Clone for Scheduler<P> {
 #[derive(Clone)]
 pub struct WorkerInfo {
     pub id: String,
+    pub service_name: String,
+    pub group: String,
     pub workflow_types: Vec<String>,
+    pub resources: Vec<(String, ResourceType)>,
     pub last_seen: std::time::SystemTime,
 }
 
@@ -34,17 +40,23 @@ impl<P: Persistence> Scheduler<P> {
     pub fn new(persistence: P) -> Self {
         Scheduler {
             persistence,
+            service_registry: ServiceRegistry::new(),
             active_workers: RwLock::new(HashMap::new()),
             running_tasks: Mutex::new(HashMap::new()),
             poll_interval: Duration::from_millis(100),
         }
     }
 
-    pub async fn register_worker(&self, worker_id: String, workflow_types: Vec<String>) {
+    pub async fn register_worker(&self, worker_id: String, service_name: String, 
+                                  group: String, workflow_types: Vec<String>, 
+                                  resources: Vec<(String, ResourceType)>) {
         let mut workers = self.active_workers.write().await;
         workers.insert(worker_id.clone(), WorkerInfo {
             id: worker_id,
+            service_name,
+            group,
             workflow_types,
+            resources,
             last_seen: std::time::SystemTime::now(),
         });
     }
@@ -64,13 +76,18 @@ impl<P: Persistence> Scheduler<P> {
         
         for workflow in workflows {
             if matches!(workflow.state, WorkflowState::Running { .. }) {
-                if let Some(next_step) = self.find_next_step(&workflow).await {
-                    if worker.workflow_types.is_empty() || 
-                       worker.workflow_types.contains(&workflow.workflow_type) {
+                if let Some((step_name, target_service, target_resource, resource_type)) = 
+                    self.find_next_step(&workflow).await {
+                    
+                    // Check if this worker can handle this task
+                    if self.can_worker_handle_task(worker, &target_service, &target_resource, resource_type) {
                         let task = Task {
-                            task_id: format!("{}-{}", workflow.id, next_step),
+                            task_id: format!("{}-{}", workflow.id, step_name),
                             workflow_id: workflow.id.clone(),
-                            step_name: next_step.clone(),
+                            step_name: step_name.clone(),
+                            target_service: target_service.clone(),
+                            target_resource: target_resource.clone(),
+                            resource_type,
                             input: workflow.input.clone(),
                             retry: None,
                         };
@@ -86,11 +103,35 @@ impl<P: Persistence> Scheduler<P> {
         tasks
     }
 
-    async fn find_next_step(&self, workflow: &Workflow) -> Option<String> {
+    fn can_worker_handle_task(&self, worker: &WorkerInfo, target_service: &Option<String>, 
+                               target_resource: &Option<String>, resource_type: ResourceType) -> bool {
+        // If no target service specified, any worker can handle
+        if target_service.is_none() {
+            return worker.workflow_types.is_empty() || 
+                   worker.resources.iter().any(|(name, rtype)| 
+                       rtype == &resource_type && target_resource.as_ref().map_or(true, |r| r == name));
+        }
+        
+        let target = target_service.as_ref().unwrap();
+        
+        // Check if this worker is the target service
+        if worker.service_name == *target {
+            // Worker can handle its own resources
+            return true;
+        }
+        
+        // Check if worker has matching resources
+        worker.resources.iter().any(|(name, rtype)| {
+            rtype == &resource_type && 
+            target_resource.as_ref().map_or(true, |r| r == name)
+        })
+    }
+
+    async fn find_next_step(&self, workflow: &Workflow) -> Option<(String, Option<String>, Option<String>, ResourceType)> {
         match &workflow.state {
             WorkflowState::Running { current_step } => {
                 if current_step.is_none() {
-                    Some("start".to_string())
+                    Some(("start".to_string(), None, None, ResourceType::Step))
                 } else {
                     None
                 }
