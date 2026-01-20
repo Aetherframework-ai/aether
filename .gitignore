@@ -6,3 +6,4 @@ openspec
 .claude
 target
 docs/*
+node_modules
