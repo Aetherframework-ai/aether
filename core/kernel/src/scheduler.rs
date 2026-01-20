@@ -183,7 +183,13 @@ mod tests {
         
         let scheduler = Scheduler::new(store);
         
-        scheduler.register_worker("worker-1".to_string(), vec!["test-type".to_string()]).await;
+        scheduler.register_worker(
+            "worker-1".to_string(),
+            "test-service".to_string(),
+            "test-group".to_string(),
+            vec!["test-type".to_string()],
+            vec![],
+        ).await;
         
         let tasks = scheduler.poll_tasks("worker-1", 1).await;
         assert_eq!(tasks.len(), 1);

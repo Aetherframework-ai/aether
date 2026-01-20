@@ -1,4 +1,4 @@
-use crate::task::{ResourceType, ServiceResource};
+use crate::task::{ResourceMetadata, ResourceType, ServiceResource};
 use std::collections::HashMap;
 use std::sync::RwLock;
 
