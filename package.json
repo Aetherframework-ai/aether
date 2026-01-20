@@ -7,6 +7,8 @@
     "test:commit-message": "echo \"feat: test\" | npx commitlint"
   },
   "devDependencies": {
+    "@commitlint/cli": "^18.0.0",
+    "@commitlint/config-conventional": "^18.0.0",
     "@semantic-release/changelog": "^6.0.0",
     "@semantic-release/commit-analyzer": "^11.0.0",
     "@semantic-release/exec": "^6.0.0",
