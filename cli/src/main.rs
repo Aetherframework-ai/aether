@@ -129,6 +129,12 @@ enum Commands {
         /// HTTP port for dashboard (default: 7234)
         #[arg(long, default_value = "7234")]
         http_port: u16,
+        /// Enable Dashboard (default: true)
+        #[arg(long, default_value = "true")]
+        dashboard: bool,
+        /// Dashboard WebSocket port (default: 7235)
+        #[arg(long, default_value = "7235")]
+        dashboard_port: u16,
         /// Persistence mode (memory|snapshot|state-action-log)
         #[arg(long, default_value = "memory")]
         persistence: String,
@@ -208,8 +214,10 @@ async fn main() -> anyhow::Result<()> {
             db,
             grpc_port,
             http_port,
+            dashboard,
+            dashboard_port,
             persistence,
-        } => serve_command(db, grpc_port, http_port, persistence).await,
+        } => serve_command(db, grpc_port, http_port, dashboard, dashboard_port, persistence).await,
         Commands::Init {
             name,
             output,
@@ -226,12 +234,18 @@ async fn serve_command(
     db: PathBuf,
     grpc_port: u16,
     http_port: u16,
+    dashboard: bool,
+    dashboard_port: u16,
     persistence: String,
 ) -> anyhow::Result<()> {
     println!("Starting Aether server...");
     println!("Database: {:?}", db);
     println!("gRPC Port: {}", grpc_port);
     println!("HTTP Port: {}", http_port);
+    println!("Dashboard: {}", if dashboard { "enabled" } else { "disabled" });
+    if dashboard {
+        println!("Dashboard WS Port: {}", dashboard_port);
+    }
     println!("Persistence: {}", persistence);
     println!();
 
@@ -290,6 +304,35 @@ async fn serve_command(
     println!();
     println!("Press Ctrl+C to stop the server");
     println!();
+
+        // 启动 Dashboard WebSocket 服务器（如果启用）
+        if dashboard {
+            #[cfg(feature = "dashboard")]
+            {
+                let dashboard_addr = format!("0.0.0.0:{}", dashboard_port);
+                let tracker = scheduler.tracker.clone();
+                let broadcaster = scheduler.broadcaster.get_sender();
+
+                tokio::spawn(async move {
+                    if let Err(e) = aetherframework_kernel::dashboard_server::start_dashboard_server(
+                        tracker,
+                        broadcaster,
+                        &dashboard_addr,
+                    )
+                    .await
+                    {
+                        eprintln!("Dashboard server error: {}", e);
+                    }
+                });
+
+                println!("🎨 Dashboard WebSocket server starting on 0.0.0.0:{}", dashboard_port);
+            }
+
+            #[cfg(not(feature = "dashboard"))]
+            {
+                println!("⚠️  Dashboard feature not enabled. Rebuild with --features dashboard");
+            }
+        }
 
     // 使用 aetherframework-kernel 的服务器启动函数
     server::start_server(scheduler, &addr).await?;

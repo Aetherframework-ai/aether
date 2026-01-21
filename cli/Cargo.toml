@@ -13,8 +13,12 @@ path = "src/main.rs"
 name = "ae"
 path = "src/main.rs"
 
+[features]
+default = ["dashboard"]
+dashboard = ["aetherframework-kernel/dashboard"]
+
 [dependencies]
-aetherframework-kernel = { path = "../core/kernel" }
+aetherframework-kernel = { path = "../core/kernel", default-features = false }
 async-trait = "0.1"
 clap = { version = "4.0", features = ["derive"] }
 tonic = { version = "0.10", features = ["transport"] }
