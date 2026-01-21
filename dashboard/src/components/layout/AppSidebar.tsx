@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Server, RefreshCw } from 'lucide-react';
+import { Activity, Server, RefreshCw, CheckCircle2 } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -70,7 +70,7 @@ export function AppSidebar({
         <SidebarGroup>
           <div className="flex items-center justify-between px-2">
             <SidebarGroupLabel className="px-0 text-xs uppercase tracking-wider">
-              Active Workflows
+              Workflows
             </SidebarGroupLabel>
             <TooltipProvider>
               <Tooltip>
@@ -108,7 +108,7 @@ export function AppSidebar({
                 <div className="flex items-center justify-center py-8">
                   <div className="flex flex-col items-center gap-2">
                     <Activity className="h-5 w-5 text-muted-foreground opacity-50" />
-                    <span className="text-sm text-muted-foreground">No active workflows</span>
+                    <span className="text-sm text-muted-foreground">No workflows</span>
                   </div>
                 </div>
               ) : (
@@ -140,13 +140,38 @@ export function AppSidebar({
                                     onClick={() => onSelectWorkflow(workflow.workflow_id)}
                                     className="cursor-pointer h-auto py-3 px-3"
                                   >
-                                    <div className="flex flex-col gap-1 min-w-0">
-                                      <span className="font-medium truncate">
-                                        {workflow.workflow_type}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground truncate">
-                                        {workflow.current_step || 'Waiting'}
-                                      </span>
+                                    <div className="flex items-start gap-2 min-w-0 w-full">
+                                      {/* 状态指示器 */}
+                                      {workflow.completed_at ? (
+                                        <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                                      ) : (
+                                        <motion.div
+                                          className="h-4 w-4 flex items-center justify-center flex-shrink-0 mt-0.5"
+                                        >
+                                          <motion.div
+                                            className="h-2 w-2 rounded-full bg-blue-500"
+                                            animate={{
+                                              scale: [1, 1.2, 1],
+                                              opacity: [1, 0.7, 1],
+                                            }}
+                                            transition={{
+                                              duration: 1.5,
+                                              repeat: Infinity,
+                                              ease: 'easeInOut',
+                                            }}
+                                          />
+                                        </motion.div>
+                                      )}
+                                      <div className="flex flex-col gap-1 min-w-0 flex-1">
+                                        <span className="font-medium truncate">
+                                          {workflow.workflow_type}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground truncate">
+                                          {workflow.completed_at
+                                            ? 'Completed'
+                                            : workflow.current_step || 'Waiting'}
+                                        </span>
+                                      </div>
                                     </div>
                                   </SidebarMenuButton>
                                 </TooltipTrigger>

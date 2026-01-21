@@ -15,12 +15,12 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { fadeVariants } from "@/lib/motion";
 import type {
 	WorkflowInfoDto,
 	WorkflowDetailResponse,
 	ApiResponse,
+	WorkflowEvent,
 } from "@/lib/types";
 
 const queryClient = new QueryClient();
@@ -64,6 +64,7 @@ function Dashboard() {
 		useState<WorkflowDetailResponse | null>(null);
 	const [isConnected, setIsConnected] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
+	const [lastEvent, setLastEvent] = useState<WorkflowEvent | null>(null);
 	const wsRef = useRef<WebSocket | null>(null);
 
 	const selectedWorkflow = workflows.find(
@@ -71,28 +72,99 @@ function Dashboard() {
 	);
 
 	const connect = useCallback(() => {
+		// 防止重复创建连接
+		if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
+			return;
+		}
+
 		const ws = new WebSocket(`ws://${window.location.host}/ws`);
 
 		ws.onopen = () => {
 			console.log("[Dashboard] WebSocket connected");
 			setIsConnected(true);
-			ws.send(JSON.stringify({ ListActiveWorkflows: null }));
+			// 请求所有 workflows（包括已完成的）
+			ws.send(JSON.stringify({ ListAllWorkflows: null }));
 		};
 
 		ws.onmessage = (event) => {
 			try {
-				const data = JSON.parse(event.data) as ApiResponse;
+				const data = JSON.parse(event.data);
 				console.log("[Dashboard] Received:", data);
 
+				// 检查是否是 API 响应格式
 				if ("WorkflowList" in data) {
-					setWorkflows(data.WorkflowList.workflows);
+					setWorkflows(
+						(
+							data as ApiResponse & {
+								WorkflowList: { workflows: WorkflowInfoDto[] };
+							}
+						).WorkflowList.workflows,
+					);
 					setIsLoading(false);
 				} else if ("WorkflowDetail" in data) {
 					setWorkflowDetail(
-						data.WorkflowDetail.detail as unknown as WorkflowDetailResponse,
+						(
+							data as ApiResponse & {
+								WorkflowDetail: { detail: WorkflowDetailResponse };
+							}
+						).WorkflowDetail.detail,
 					);
 				} else if ("Error" in data) {
-					console.error("[Dashboard] Error:", data.Error.message);
+					console.error(
+						"[Dashboard] Error:",
+						(data as ApiResponse & { Error: { message: string } }).Error
+							.message,
+					);
+				}
+				// 检查是否是实时事件格式 (包含 event_type 和 workflow_id)
+				else if ("event_type" in data && "workflow_id" in data) {
+					const workflowEvent = data as WorkflowEvent;
+					console.log("[Dashboard] Workflow event:", workflowEvent);
+					setLastEvent(workflowEvent);
+
+					// 如果收到了 workflow 事件，确保该 workflow 在列表中
+					setWorkflows((prev) => {
+						const exists = prev.some(
+							(w) => w.workflow_id === workflowEvent.workflow_id,
+						);
+						if (!exists) {
+							// 添加新的 workflow 到列表
+							return [
+								...prev,
+								{
+									workflow_id: workflowEvent.workflow_id,
+									workflow_type: workflowEvent.workflow_type,
+									current_step:
+										"step_name" in workflowEvent
+											? (workflowEvent as unknown as { step_name: string })
+													.step_name
+											: null,
+									started_at: workflowEvent.timestamp,
+									completed_at: null,
+								},
+							];
+						}
+						// 更新现有 workflow 的状态
+						return prev.map((w) =>
+							w.workflow_id === workflowEvent.workflow_id
+								? {
+										...w,
+										current_step:
+											"step_name" in workflowEvent
+												? (workflowEvent as unknown as { step_name: string })
+														.step_name
+												: w.current_step,
+										// 如果是 workflow 完成事件，设置 completed_at
+										completed_at:
+											workflowEvent.event_type === "workflow:completed" ||
+											workflowEvent.event_type === "workflow:failed"
+												? workflowEvent.timestamp
+												: w.completed_at,
+									}
+								: w,
+						);
+					});
+					setIsLoading(false);
 				}
 			} catch (error) {
 				console.error("[Dashboard] Failed to parse message:", error);
@@ -130,7 +202,7 @@ function Dashboard() {
 	const refreshWorkflows = () => {
 		if (wsRef.current?.readyState === WebSocket.OPEN) {
 			setIsLoading(true);
-			wsRef.current.send(JSON.stringify({ ListActiveWorkflows: null }));
+			wsRef.current.send(JSON.stringify({ ListAllWorkflows: null }));
 		}
 	};
 
@@ -158,7 +230,7 @@ function Dashboard() {
 					<header className="flex-shrink-0 m-4 mb-0 px-6 py-4 bg-white/70 dark:bg-white/5 backdrop-blur-xl border-b border-black/10 dark:border-white/10">
 						<div className="flex items-center justify-between">
 							<div>
-								<h2 className="text-lg font-semibold text-foreground">
+								<h2 className="text-lg font-semibold text-foreground ">
 									{selectedWorkflowId
 										? `${selectedWorkflow?.workflow_type || "Workflow"}: ${selectedWorkflowId.slice(0, 8)}...`
 										: "Select a workflow"}
@@ -200,6 +272,8 @@ function Dashboard() {
 										<WorkflowGraph
 											workflowId={selectedWorkflowId}
 											initialData={workflowDetail ?? undefined}
+											isConnected={isConnected}
+											lastEvent={lastEvent}
 										/>
 									</ReactFlowProvider>
 								</motion.div>

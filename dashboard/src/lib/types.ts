@@ -93,11 +93,13 @@ export interface WorkflowInfoDto {
   workflow_type: string;
   current_step: string | null;
   started_at: number;
+  completed_at: number | null;
 }
 
 // Dashboard API 请求 (Rust enum 格式)
 export type ApiRequest =
   | { ListActiveWorkflows: null }
+  | { ListAllWorkflows: null }
   | { GetWorkflow: { workflow_id: string } }
   | { GetWorkflowHistory: { workflow_id: string } };
 

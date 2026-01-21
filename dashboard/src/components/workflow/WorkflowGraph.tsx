@@ -16,9 +16,8 @@ import '@xyflow/react/dist/style.css';
 import { motion } from 'motion/react';
 import { Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { StepNode, type StepNodeData } from './StepNode';
-import { useWorkflowEvents } from '@/lib/websocket';
 import { useTheme } from '@/hooks/useTheme';
-import type { WorkflowDetailResponse } from '@/lib/types';
+import type { WorkflowDetailResponse, WorkflowEvent } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { scaleFadeVariants } from '@/lib/motion';
 
@@ -29,6 +28,8 @@ const nodeTypes = {
 interface WorkflowGraphProps {
   workflowId: string;
   initialData?: WorkflowDetailResponse;
+  isConnected: boolean;
+  lastEvent?: WorkflowEvent | null;
 }
 
 type StepNodeType = Node<StepNodeData, 'step'>;
@@ -65,8 +66,7 @@ const getEdgeStyle = (sourceStatus: string, targetStatus: string, isDark: boolea
   };
 };
 
-export function WorkflowGraph({ workflowId, initialData }: WorkflowGraphProps) {
-  const { isConnected, lastEvent } = useWorkflowEvents(workflowId);
+export function WorkflowGraph({ workflowId, initialData, isConnected, lastEvent }: WorkflowGraphProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
 

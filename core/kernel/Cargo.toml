@@ -8,7 +8,10 @@ license = "Apache-2.0"
 [features]
 default = ["dashboard"]
 dashboard = [
-    "tokio-tungstenite",
+    "axum",
+    "tower-http",
+    "rust-embed",
+    "mime_guess",
     "futures-util",
     "serde/derive",
 ]
@@ -37,5 +40,8 @@ futures = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 
 # Dashboard feature dependencies
-tokio-tungstenite = { version = "0.21", optional = true }
+axum = { version = "0.7", features = ["ws"], optional = true }
+tower-http = { version = "0.5", features = ["fs", "cors"], optional = true }
+rust-embed = { version = "8", optional = true }
+mime_guess = { version = "2", optional = true }
 futures-util = { version = "0.3", optional = true }

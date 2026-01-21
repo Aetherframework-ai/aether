@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
 /// WebSocket 事件类型
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum EventType {
+    #[default]
     StepStarted,
     StepCompleted,
     StepFailed,
@@ -12,11 +13,6 @@ pub enum EventType {
     WorkflowCancelled,
 }
 
-impl Default for EventType {
-    fn default() -> Self {
-        EventType::StepStarted
-    }
-}
 
 /// WebSocket 事件负载
 #[derive(Debug, Clone, Serialize, Deserialize)]

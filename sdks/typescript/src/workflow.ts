@@ -37,16 +37,45 @@ export class Workflow<T> {
   }
 
   // 创建workflow上下文用于本地执行
-  private createContext(): any {
+  private createContext(workflowId: string): any {
     const self = this;
 
     return {
-      // 执行本地step
+      // 执行本地step，并向服务器报告状态
       step: async function<R>(name: string, fn: () => Promise<R>): Promise<R> {
         console.log(`[Workflow] Executing step: ${name}`);
-        const result = await fn();
-        console.log(`[Workflow] Step ${name} completed`);
-        return result;
+
+        // 报告 step 开始
+        try {
+          await self.client.reportStepStarted(workflowId, name, {});
+        } catch (e) {
+          console.warn(`[Workflow] Failed to report step started: ${e}`);
+        }
+
+        try {
+          const result = await fn();
+          console.log(`[Workflow] Step ${name} completed`);
+
+          // 报告 step 完成
+          try {
+            await self.client.reportStepCompleted(workflowId, name, result);
+          } catch (e) {
+            console.warn(`[Workflow] Failed to report step completed: ${e}`);
+          }
+
+          return result;
+        } catch (error: any) {
+          console.error(`[Workflow] Step ${name} failed:`, error.message);
+
+          // 报告 step 失败
+          try {
+            await self.client.reportStepFailed(workflowId, name, error.message || String(error));
+          } catch (e) {
+            console.warn(`[Workflow] Failed to report step failed: ${e}`);
+          }
+
+          throw error;
+        }
       },
 
       // 并行执行
@@ -65,8 +94,8 @@ export class Workflow<T> {
   }
 
   // 在本地执行workflow（用于worker模式）
-  async executeLocally(...args: any[]): Promise<T> {
-    const ctx = this.createContext();
+  async executeLocally(workflowId: string, ...args: any[]): Promise<T> {
+    const ctx = this.createContext(workflowId);
     return await this.fn(ctx, ...args);
   }
 }

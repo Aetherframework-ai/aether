@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -14,7 +15,7 @@ pub enum StepExecutionStatus {
 }
 
 /// Unix 时间戳（秒）
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
 pub struct Timestamp {
     pub seconds: i64,
     pub nanos: i32,
@@ -38,14 +39,6 @@ impl From<Timestamp> for prost_types::Timestamp {
     }
 }
 
-impl Default for Timestamp {
-    fn default() -> Self {
-        Self {
-            seconds: 0,
-            nanos: 0,
-        }
-    }
-}
 
 /// 单个 Step 的执行记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -71,15 +64,14 @@ pub struct WorkflowExecution {
     pub current_step: Option<String>,
 }
 
-impl StepExecutionStatus {
-    /// 将状态转换为字符串表示
-    pub fn to_string(&self) -> String {
+impl fmt::Display for StepExecutionStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            StepExecutionStatus::Pending => "pending".to_string(),
-            StepExecutionStatus::Running => "running".to_string(),
-            StepExecutionStatus::Completed => "completed".to_string(),
-            StepExecutionStatus::Failed { error: _ } => "failed".to_string(),
-            StepExecutionStatus::Cancelled => "cancelled".to_string(),
+            StepExecutionStatus::Pending => write!(f, "pending"),
+            StepExecutionStatus::Running => write!(f, "running"),
+            StepExecutionStatus::Completed => write!(f, "completed"),
+            StepExecutionStatus::Failed { .. } => write!(f, "failed"),
+            StepExecutionStatus::Cancelled => write!(f, "cancelled"),
         }
     }
 }

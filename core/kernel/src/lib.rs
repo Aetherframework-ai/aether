@@ -1,4 +1,6 @@
 #[cfg(feature = "dashboard")]
+pub mod dashboard_assets;
+#[cfg(feature = "dashboard")]
 pub mod dashboard_server;
 
 pub mod broadcaster;

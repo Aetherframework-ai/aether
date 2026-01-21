@@ -278,7 +278,8 @@ export class AetherClient {
                 // 遍历所有 workflows，找到匹配的
                 for (const [, workflow] of this.workflows) {
                   try {
-                    result = await workflow.executeLocally(task.input);
+                    // 传递 workflowId 以便追踪每个 step
+                    result = await workflow.executeLocally(task.workflowId, task.input);
                     break;
                   } catch (e: any) {
                     // 继续尝试下一个 workflow

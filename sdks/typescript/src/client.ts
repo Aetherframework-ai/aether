@@ -262,4 +262,77 @@ export class Client {
       });
     });
   }
+
+  // Step 状态枚举
+  static StepStatus = {
+    STEP_STARTED: 0,
+    STEP_COMPLETED: 1,
+    STEP_FAILED: 2,
+  };
+
+  async reportStepStarted(workflowId: string, stepName: string, input: any): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const grpcRequest = {
+        workflowId,
+        stepName,
+        status: Client.StepStatus.STEP_STARTED,
+        input: Buffer.from(JSON.stringify(input || {})),
+        output: Buffer.alloc(0),
+        error: '',
+      };
+
+      this.workerService.reportStep(grpcRequest, (err: any, response: any) => {
+        if (err) {
+          console.error('[Aether Client] ReportStep error:', err.message);
+          reject(err);
+        } else {
+          resolve(response.success);
+        }
+      });
+    });
+  }
+
+  async reportStepCompleted(workflowId: string, stepName: string, output: any): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const grpcRequest = {
+        workflowId,
+        stepName,
+        status: Client.StepStatus.STEP_COMPLETED,
+        input: Buffer.alloc(0),
+        output: Buffer.from(JSON.stringify(output || {})),
+        error: '',
+      };
+
+      this.workerService.reportStep(grpcRequest, (err: any, response: any) => {
+        if (err) {
+          console.error('[Aether Client] ReportStep error:', err.message);
+          reject(err);
+        } else {
+          resolve(response.success);
+        }
+      });
+    });
+  }
+
+  async reportStepFailed(workflowId: string, stepName: string, error: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const grpcRequest = {
+        workflowId,
+        stepName,
+        status: Client.StepStatus.STEP_FAILED,
+        input: Buffer.alloc(0),
+        output: Buffer.alloc(0),
+        error,
+      };
+
+      this.workerService.reportStep(grpcRequest, (err: any, response: any) => {
+        if (err) {
+          console.error('[Aether Client] ReportStep error:', err.message);
+          reject(err);
+        } else {
+          resolve(response.success);
+        }
+      });
+    });
+  }
 }

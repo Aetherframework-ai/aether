@@ -108,6 +108,31 @@ pub struct CompleteStepResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReportStepRequest {
+    #[prost(string, tag = "1")]
+    pub workflow_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub step_name: ::prost::alloc::string::String,
+    #[prost(enumeration = "StepStatus", tag = "3")]
+    pub status: i32,
+    /// 仅 STEP_STARTED 时使用
+    #[prost(bytes = "vec", tag = "4")]
+    pub input: ::prost::alloc::vec::Vec<u8>,
+    /// 仅 STEP_COMPLETED 时使用
+    #[prost(bytes = "vec", tag = "5")]
+    pub output: ::prost::alloc::vec::Vec<u8>,
+    /// 仅 STEP_FAILED 时使用
+    #[prost(string, tag = "6")]
+    pub error: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReportStepResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RegisterRequest {
     #[prost(string, tag = "1")]
     pub worker_id: ::prost::alloc::string::String,
@@ -276,6 +301,36 @@ impl State {
             "COMPLETED" => Some(Self::Completed),
             "FAILED" => Some(Self::Failed),
             "CANCELLED" => Some(Self::Cancelled),
+            _ => None,
+        }
+    }
+}
+/// Step 状态报告
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum StepStatus {
+    StepStarted = 0,
+    StepCompleted = 1,
+    StepFailed = 2,
+}
+impl StepStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            StepStatus::StepStarted => "STEP_STARTED",
+            StepStatus::StepCompleted => "STEP_COMPLETED",
+            StepStatus::StepFailed => "STEP_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "STEP_STARTED" => Some(Self::StepStarted),
+            "STEP_COMPLETED" => Some(Self::StepCompleted),
+            "STEP_FAILED" => Some(Self::StepFailed),
             _ => None,
         }
     }
@@ -618,6 +673,31 @@ pub mod worker_service_client {
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("aether.v1.WorkerService", "CompleteStep"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn report_step(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ReportStepRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ReportStepResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/aether.v1.WorkerService/ReportStep",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("aether.v1.WorkerService", "ReportStep"));
             self.inner.unary(req, path, codec).await
         }
         pub async fn heartbeat(
@@ -1146,6 +1226,13 @@ pub mod worker_service_server {
             tonic::Response<super::CompleteStepResponse>,
             tonic::Status,
         >;
+        async fn report_step(
+            &self,
+            request: tonic::Request<super::ReportStepRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ReportStepResponse>,
+            tonic::Status,
+        >;
         async fn heartbeat(
             &self,
             request: tonic::Request<super::HeartbeatRequest>,
@@ -1358,6 +1445,52 @@ pub mod worker_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = CompleteStepSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/aether.v1.WorkerService/ReportStep" => {
+                    #[allow(non_camel_case_types)]
+                    struct ReportStepSvc<T: WorkerService>(pub Arc<T>);
+                    impl<
+                        T: WorkerService,
+                    > tonic::server::UnaryService<super::ReportStepRequest>
+                    for ReportStepSvc<T> {
+                        type Response = super::ReportStepResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ReportStepRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WorkerService>::report_step(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ReportStepSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

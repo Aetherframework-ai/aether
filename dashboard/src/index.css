@@ -3,8 +3,7 @@
 @tailwind base;
 
 @plugin "tailwindcss-animate";
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* React Flow 样式 */
 @import "@xyflow/react/dist/style.css";

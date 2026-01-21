@@ -14,6 +14,7 @@ pub struct Scheduler<P: Persistence> {
     pub tracker: WorkflowTracker,      // 新增：执行追踪器
     pub broadcaster: EventBroadcaster, // 新增：事件广播器
     active_workers: RwLock<HashMap<String, WorkerInfo>>,
+    #[allow(dead_code)]
     running_tasks: Mutex<HashMap<String, Task>>,
     poll_interval: Duration,
 }
