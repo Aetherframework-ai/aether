@@ -1,6 +1,11 @@
 {
   "branches": [
-    "main"
+    {
+      "name": "main",
+      "channel": "latest",
+      "range": "0.x.x",
+      "prerelease": false
+    }
   ],
   "repositoryUrl": "https://github.com/Aetherframework-ai/aether",
   "tagFormat": "v${version}",
