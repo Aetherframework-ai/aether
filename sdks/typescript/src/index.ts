@@ -208,10 +208,14 @@ function toKebabCase(str: string): string {
 export class AetherClient {
   private client: Client;
   private config: AetherConfig;
+  private workerId: string;
+  private workflows: Map<string, Workflow<any>> = new Map();
+  private isRunning: boolean = false;
 
   constructor(config: AetherConfig) {
     this.config = config;
     this.client = new Client(config.serverUrl);
+    this.workerId = config.workerId || `worker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 
   workflow<T extends Record<string, any>>(name: string, fn: WorkflowFunction<T>) {
@@ -220,11 +224,97 @@ export class AetherClient {
 
   async serve(workflows: Workflow<any>[]) {
     console.log('Starting Aether server...');
-    console.log(`Registered ${workflows.length} workflows`);
-    
-    if (this.config.services) {
-      console.log(`Configured ${Object.keys(this.config.services).length} remote services`);
+
+    // 保存 workflows 以便后续查找
+    for (const wf of workflows) {
+      this.workflows.set(wf.getName(), wf);
     }
+
+    console.log(`Registered ${workflows.length} workflows`);
+
+    // 准备注册信息
+    const workflowTypes = workflows.map(wf => wf.getName());
+    const provides = workflows.map(wf => ({
+      name: wf.getName(),
+      type: 2, // ResourceType.WORKFLOW = 2
+    }));
+
+    // 注册 worker
+    try {
+      const response = await this.client.register({
+        workerId: this.workerId,
+        serviceName: this.config.name || 'typescript-worker',
+        group: 'default',
+        language: workflowTypes,
+        provides,
+      });
+      console.log(`Worker registered with server: ${response.serverId}`);
+    } catch (error: any) {
+      console.error('Failed to register worker:', error.message);
+      throw error;
+    }
+
+    // 启动任务轮询循环
+    this.isRunning = true;
+    this.startPolling();
+
+    console.log('Server started successfully!');
+  }
+
+  private async startPolling() {
+    // 开始轮询循环
+    const runLoop = async () => {
+      while (this.isRunning) {
+        try {
+          const tasks = await this.client.pollTasksOnce(this.workerId, 10);
+
+          for (const task of tasks) {
+            try {
+              let result: any = null;
+              let error: string | undefined;
+
+              // 对于 "start" step，执行整个 workflow
+              if (task.stepName === 'start') {
+                // 遍历所有 workflows，找到匹配的
+                for (const [, workflow] of this.workflows) {
+                  try {
+                    // 传递 workflowId 以便追踪每个 step
+                    result = await workflow.executeLocally(task.workflowId, task.input);
+                    break;
+                  } catch (e: any) {
+                    // 继续尝试下一个 workflow
+                  }
+                }
+              }
+
+              // 完成任务
+              await this.client.completeStep(
+                task.taskId,
+                result !== null ? result : {},
+                error
+              );
+
+            } catch (e: any) {
+              console.error(`[Worker] Task error:`, e.message);
+              await this.client.completeStep(task.taskId, {}, e.message);
+            }
+          }
+
+          // 等待 200ms 后继续轮询
+          await new Promise(resolve => setTimeout(resolve, 200));
+
+        } catch (e: any) {
+          console.error('[Worker] Polling error:', e.message);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    };
+
+    runLoop().catch(console.error);
+  }
+
+  stop() {
+    this.isRunning = false;
   }
 }
 

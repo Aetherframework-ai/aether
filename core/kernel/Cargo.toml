@@ -5,12 +5,23 @@ edition = "2021"
 description = "Core kernel for Aether workflow engine"
 license = "Apache-2.0"
 
+[features]
+default = ["dashboard"]
+dashboard = [
+    "axum",
+    "tower-http",
+    "rust-embed",
+    "mime_guess",
+    "futures-util",
+    "serde/derive",
+]
+
 [build-dependencies]
 prost-build = "0.12"
 tonic-build = "0.10"
 
 [dependencies]
-actix-web = "4"
+actix-web = { version = "4", optional = true }
 prost = "0.12"
 prost-types = "0.12"
 tokio = { version = "1.0", features = ["full"] }
@@ -27,3 +38,10 @@ tonic = "0.10"
 async-trait = "0.1"
 futures = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
+
+# Dashboard feature dependencies
+axum = { version = "0.7", features = ["ws"], optional = true }
+tower-http = { version = "0.5", features = ["fs", "cors"], optional = true }
+rust-embed = { version = "8", optional = true }
+mime_guess = { version = "2", optional = true }
+futures-util = { version = "0.3", optional = true }

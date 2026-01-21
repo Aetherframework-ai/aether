@@ -1,7 +1,9 @@
+use crate::broadcaster::EventBroadcaster;
 use crate::persistence::Persistence;
 use crate::service_registry::ServiceRegistry;
 use crate::state_machine::{Workflow, WorkflowState};
 use crate::task::{ResourceType, Task};
+use crate::tracker::WorkflowTracker;
 use std::collections::HashMap;
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::Duration;
@@ -9,7 +11,10 @@ use tokio::time::Duration;
 pub struct Scheduler<P: Persistence> {
     pub persistence: P,
     pub service_registry: ServiceRegistry,
+    pub tracker: WorkflowTracker,      // 新增：执行追踪器
+    pub broadcaster: EventBroadcaster, // 新增：事件广播器
     active_workers: RwLock<HashMap<String, WorkerInfo>>,
+    #[allow(dead_code)]
     running_tasks: Mutex<HashMap<String, Task>>,
     poll_interval: Duration,
 }
@@ -19,6 +24,8 @@ impl<P: Persistence + Clone> Clone for Scheduler<P> {
         Scheduler {
             persistence: self.persistence.clone(),
             service_registry: ServiceRegistry::new(),
+            tracker: self.tracker.clone(),
+            broadcaster: self.broadcaster.clone(),
             active_workers: RwLock::new(HashMap::new()),
             running_tasks: Mutex::new(HashMap::new()),
             poll_interval: self.poll_interval,
@@ -41,6 +48,8 @@ impl<P: Persistence> Scheduler<P> {
         Scheduler {
             persistence,
             service_registry: ServiceRegistry::new(),
+            tracker: WorkflowTracker::new(),
+            broadcaster: EventBroadcaster::new(),
             active_workers: RwLock::new(HashMap::new()),
             running_tasks: Mutex::new(HashMap::new()),
             poll_interval: Duration::from_millis(100),
@@ -164,24 +173,57 @@ impl<P: Persistence> Scheduler<P> {
     }
 
     pub async fn complete_task(&self, task_id: &str, result: Vec<u8>) -> anyhow::Result<()> {
-        let mut running_tasks = self.running_tasks.lock().await;
+        // 解析 task_id (格式: workflow_id-step_name)
+        // 注意: workflow_id 是 UUID，包含 '-'，所以我们从后往前找最后一个 '-'
+        let parts: Vec<&str> = task_id.rsplitn(2, '-').collect();
+        if parts.len() != 2 {
+            return Err(anyhow::anyhow!("Invalid task_id format: {}", task_id));
+        }
+        let step_name = parts[0];
+        let workflow_id = parts[1];
 
-        if let Some(task) = running_tasks.remove(task_id) {
-            self.persistence
-                .save_step_result(&task.workflow_id, &task.step_name, result.clone())
-                .await?;
+        // 保存 step 结果到持久化层
+        self.persistence
+            .save_step_result(workflow_id, step_name, result.clone())
+            .await?;
 
-            if let Some(workflow) = self
-                .persistence
-                .get_workflow(&task.workflow_id)
-                .await
-                .unwrap()
-            {
-                if let Some(new_state) = workflow.state.step_completed() {
+        // 获取 workflow 信息用于追踪和广播
+        if let Some(workflow) = self.persistence.get_workflow(workflow_id).await? {
+            // 记录 step 完成到追踪器
+            self.tracker
+                .step_completed(workflow_id, step_name, result.clone())
+                .await;
+
+            // 广播 step 完成事件
+            let _ = self
+                .broadcaster
+                .broadcast_step_completed(
+                    workflow_id,
+                    &workflow.workflow_type,
+                    step_name,
+                    result.clone(),
+                )
+                .await;
+
+            // 对于 "start" step，整个 workflow 执行完成
+            // 使用 complete() 而不是 step_completed() 来标记为已完成
+            if step_name == "start" {
+                if let Some(completed_state) = workflow.state.complete(result.clone()) {
                     self.persistence
-                        .update_workflow_state(&workflow.id, new_state)
+                        .update_workflow_state(workflow_id, completed_state)
                         .await?;
+
+                    self.tracker.workflow_completed(workflow_id).await;
+                    let _ = self
+                        .broadcaster
+                        .broadcast_workflow_completed(workflow_id, &workflow.workflow_type, result)
+                        .await;
                 }
+            } else if let Some(new_state) = workflow.state.step_completed() {
+                // 普通 step 完成，继续执行下一个 step
+                self.persistence
+                    .update_workflow_state(workflow_id, new_state)
+                    .await?;
             }
         }
 
@@ -192,7 +234,9 @@ impl<P: Persistence> Scheduler<P> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::broadcaster::EventType;
     use crate::persistence::l0_memory::L0MemoryStore;
+    use crate::tracker::StepExecutionStatus;
 
     #[tokio::test]
     async fn test_task_scheduling() {
@@ -227,5 +271,57 @@ mod tests {
         let tasks = scheduler.poll_tasks("worker-1", 1).await;
         assert_eq!(tasks.len(), 1);
         assert_eq!(tasks[0].step_name, "start");
+    }
+
+    #[tokio::test]
+    async fn test_tracker_integration() {
+        let store = L0MemoryStore::new();
+        let scheduler = Scheduler::new(store);
+
+        // 开始追踪 workflow
+        scheduler
+            .tracker
+            .start_workflow("wf-1".to_string(), "test-type".to_string())
+            .await;
+
+        // 开始 step
+        let step = scheduler
+            .tracker
+            .step_started("wf-1", "step-1", vec![1, 2, 3], vec![])
+            .await;
+
+        assert_eq!(step.status, StepExecutionStatus::Running);
+
+        // 完成 step
+        scheduler
+            .tracker
+            .step_completed("wf-1", "step-1", vec![4, 5, 6])
+            .await;
+
+        let execution = scheduler.tracker.get_execution("wf-1").await;
+        assert!(execution.is_some());
+        assert_eq!(execution.unwrap().step_executions.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_broadcaster() {
+        let store = L0MemoryStore::new();
+        let scheduler = Scheduler::new(store);
+
+        let mut rx = scheduler.broadcaster.subscribe();
+
+        // 广播 step 完成事件
+        let count = scheduler
+            .broadcaster
+            .broadcast_step_completed("wf-1", "test-type", "step-1", vec![1, 2, 3])
+            .await
+            .unwrap();
+
+        assert_eq!(count, 1);
+
+        // 接收事件
+        let event = rx.recv().await.unwrap();
+        assert_eq!(event.workflow_id, "wf-1");
+        assert_eq!(event.event_type, EventType::StepCompleted);
     }
 }

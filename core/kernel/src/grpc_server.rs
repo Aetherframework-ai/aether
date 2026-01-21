@@ -4,8 +4,8 @@ use crate::proto::worker_service_server::WorkerService as GrpcWorkerService;
 use crate::proto::{
     AwaitResultRequest, CancelRequest, CancelResponse, CompleteStepRequest, CompleteStepResponse,
     GetStatusRequest, HeartbeatRequest, HeartbeatResponse, PollRequest, RegisterRequest,
-    RegisterResponse, StartWorkflowRequest, StartWorkflowResponse, Task, WorkflowResult,
-    WorkflowStatus,
+    RegisterResponse, ReportStepRequest, ReportStepResponse, StartWorkflowRequest,
+    StartWorkflowResponse, StepStatus, Task, WorkflowResult, WorkflowStatus,
 };
 use crate::scheduler::Scheduler;
 use crate::state_machine::{Workflow, WorkflowState};
@@ -69,6 +69,7 @@ where
     ) -> Result<Response<StartWorkflowResponse>, Status> {
         let request = request.into_inner();
         let workflow_id = Uuid::new_v4().to_string();
+        let workflow_type = request.workflow_type.clone();
 
         let workflow = Workflow::new(workflow_id.clone(), request.workflow_type, request.input);
 
@@ -85,6 +86,12 @@ where
                 .await
                 .map_err(|e| Status::internal(e.to_string()))?;
         }
+
+        // 记录 workflow 到 tracker 以便 Dashboard 显示
+        self.scheduler
+            .tracker
+            .start_workflow(workflow_id.clone(), workflow_type)
+            .await;
 
         Ok(Response::new(StartWorkflowResponse {
             workflow_id: workflow_id.clone(),
@@ -247,7 +254,7 @@ where
         request: Request<PollRequest>,
     ) -> Result<Response<Self::PollTasksStream>, Status> {
         let request = request.into_inner();
-        let worker_id = request.worker_id;
+        let worker_id = request.worker_id.clone();
         let max_tasks = if request.max_tasks > 0 {
             request.max_tasks as usize
         } else {
@@ -255,6 +262,27 @@ where
         };
 
         let tasks = self.scheduler.poll_tasks(&worker_id, max_tasks).await;
+
+        // 记录 step 开始执行到 tracker
+        for task in &tasks {
+            self.scheduler
+                .tracker
+                .step_started(
+                    &task.workflow_id,
+                    &task.step_name,
+                    task.input.clone(),
+                    vec![],
+                )
+                .await;
+
+            // 广播 step 开始事件
+            let _ = self.scheduler.broadcaster.broadcast_step_started(
+                &task.workflow_id,
+                "workflow", // TODO: 从 workflow 获取实际类型
+                &task.step_name,
+                task.input.clone(),
+            ).await;
+        }
 
         let (tx, rx) = mpsc::channel(100);
         tokio::spawn(async move {
@@ -320,5 +348,74 @@ where
         request: Request<HeartbeatRequest>,
     ) -> Result<Response<HeartbeatResponse>, Status> {
         Ok(Response::new(HeartbeatResponse { ok: true }))
+    }
+
+    async fn report_step(
+        &self,
+        request: Request<ReportStepRequest>,
+    ) -> Result<Response<ReportStepResponse>, Status> {
+        let request = request.into_inner();
+        let workflow_id = &request.workflow_id;
+        let step_name = &request.step_name;
+
+        match StepStatus::try_from(request.status) {
+            Ok(StepStatus::StepStarted) => {
+                // 记录 step 开始
+                self.scheduler
+                    .tracker
+                    .step_started(workflow_id, step_name, request.input.clone(), vec![])
+                    .await;
+
+                // 广播 step 开始事件
+                let _ = self
+                    .scheduler
+                    .broadcaster
+                    .broadcast_step_started(
+                        workflow_id,
+                        "workflow", // TODO: 从 workflow 获取实际类型
+                        step_name,
+                        request.input,
+                    )
+                    .await;
+            }
+            Ok(StepStatus::StepCompleted) => {
+                // 记录 step 完成
+                self.scheduler
+                    .tracker
+                    .step_completed(workflow_id, step_name, request.output.clone())
+                    .await;
+
+                // 广播 step 完成事件
+                let _ = self
+                    .scheduler
+                    .broadcaster
+                    .broadcast_step_completed(
+                        workflow_id,
+                        "workflow",
+                        step_name,
+                        request.output,
+                    )
+                    .await;
+            }
+            Ok(StepStatus::StepFailed) => {
+                // 记录 step 失败
+                self.scheduler
+                    .tracker
+                    .step_failed(workflow_id, step_name, request.error.clone())
+                    .await;
+
+                // 广播 step 失败事件
+                let _ = self
+                    .scheduler
+                    .broadcaster
+                    .broadcast_step_failed(workflow_id, "workflow", step_name, request.error.clone(), 1)
+                    .await;
+            }
+            Err(_) => {
+                return Err(Status::invalid_argument("Invalid step status"));
+            }
+        }
+
+        Ok(Response::new(ReportStepResponse { success: true }))
     }
 }
