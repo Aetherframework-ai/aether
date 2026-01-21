@@ -33,7 +33,7 @@ aether serve --grpc-port 7233 --http-port 7234 --persistence snapshot
 ### 2. Create Your First Workflow
 
 ```typescript
-import { aether } from '@aether/sdk';
+import { aether } from '@aetherframework.ai/sdk';
 
 const client = aether({ serverUrl: 'http://localhost:7233' });
 
@@ -91,11 +91,11 @@ aether --help
 ### Install TypeScript SDK
 
 ```bash
-npm install @aether/sdk
+npm install @aetherframework.ai/sdk
 # or
-yarn add @aether/sdk
+yarn add @aetherframework.ai/sdk
 # or
-pnpm add @aether/sdk
+pnpm add @aetherframework.ai/sdk
 ```
 
 ### Build from Source
@@ -211,7 +211,7 @@ Every workflow follows this state machine:
 #### AetherClient
 
 ```typescript
-import { aether } from '@aether/sdk';
+import { aether } from '@aetherframework.ai/sdk';
 
 const client = aether({
   serverUrl: 'http://localhost:7233',
@@ -487,7 +487,7 @@ A minimal example demonstrating workflow basics.
 **Location:** `examples/quickstart/`
 
 ```typescript
-import { aether } from '@aether/sdk';
+import { aether } from '@aetherframework.ai/sdk';
 
 const client = aether({ serverUrl: 'http://localhost:7233' });
 
@@ -530,7 +530,7 @@ A realistic e-commerce workflow with inventory, payment, and shipping.
 **Location:** `examples/order-processing/`
 
 ```typescript
-import { aether } from '@aether/sdk';
+import { aether } from '@aetherframework.ai/sdk';
 
 const client = aether({ serverUrl: 'http://localhost:7233' });
 
