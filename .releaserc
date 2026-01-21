@@ -30,7 +30,7 @@
       "pkgRoot": "sdks/nestjs"
     }],
     ["@semantic-release/exec", {
-      "prepareCmd": "sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' core/kernel/Cargo.toml && sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' cli/Cargo.toml && sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' sdks/python/pyproject.toml"
+      "prepareCmd": "sed -i 's/\"version\": \".*\"/\"version\": \"${nextRelease.version}\"/' sdks/typescript/package.json && sed -i 's/\"version\": \".*\"/\"version\": \"${nextRelease.version}\"/' sdks/nestjs/package.json && sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' core/kernel/Cargo.toml && sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' cli/Cargo.toml && sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' sdks/python/pyproject.toml"
     }],
     ["@semantic-release/git", {
       "assets": ["CHANGELOG.md"],
