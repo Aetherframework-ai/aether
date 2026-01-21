@@ -13,6 +13,10 @@ path = "src/main.rs"
 name = "ae"
 path = "src/main.rs"
 
+[features]
+default = ["dashboard"]
+dashboard = ["aetherframework-kernel/dashboard"]
+
 [dependencies]
 aetherframework-kernel = { path = "../core/kernel", version = "0.1.4" }
 async-trait = "0.1"
