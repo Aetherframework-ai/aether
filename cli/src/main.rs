@@ -1,3 +1,4 @@
+use aetherframework_cli::templates::{render_template_dir, TemplateType, TemplateVariables};
 use aetherframework_kernel::persistence::l0_memory::L0MemoryStore;
 use aetherframework_kernel::persistence::l1_snapshot::L1SnapshotStore;
 use aetherframework_kernel::persistence::l2_state_action_log::L2StateActionStore;
@@ -5,8 +6,10 @@ use aetherframework_kernel::persistence::{Persistence, PersistenceLevel};
 use aetherframework_kernel::scheduler::Scheduler;
 use aetherframework_kernel::server;
 use aetherframework_kernel::state_machine::{Workflow, WorkflowState};
+use anyhow::Context;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+use std::str::FromStr;
 
 /// Wrapper enum for persistence backends
 enum PersistenceBackend {
@@ -137,6 +140,9 @@ enum Commands {
         /// Output directory
         #[arg(short, long, default_value = ".")]
         output: PathBuf,
+        /// Project template: ts | nestjs | python
+        #[arg(short, long, default_value = "ts")]
+        template: String,
     },
     /// Generate configuration
     Gen {
@@ -204,7 +210,11 @@ async fn main() -> anyhow::Result<()> {
             http_port,
             persistence,
         } => serve_command(db, grpc_port, http_port, persistence).await,
-        Commands::Init { name, output } => init_command(name, output).await,
+        Commands::Init {
+            name,
+            output,
+            template,
+        } => init_command(name, output, template).await,
         Commands::Gen { action } => gen_command(action).await,
         Commands::Workflow { action } => workflow_command(action).await,
         Commands::Status { workflow_id } => status_command(workflow_id).await,
@@ -287,45 +297,45 @@ async fn serve_command(
     Ok(())
 }
 
-async fn init_command(name: String, output: PathBuf) -> anyhow::Result<()> {
+async fn init_command(name: String, output: PathBuf, template: String) -> anyhow::Result<()> {
     println!("Initializing Aether project: {}", name);
+    println!("Template: {}", template);
+    println!();
 
-    // 创建项目模板
+    let template_type = TemplateType::from_str(&template)
+        .with_context(|| format!("Invalid template type: {}", template))?;
+
+    let cli_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let project_dir = output.join(&name);
-    tokio::fs::create_dir_all(&project_dir).await?;
 
-    // 生成基本文件
-    let workflow_content = r#"
-import { aether } from '@aether/sdk';
+    if project_dir.exists() {
+        return Err(anyhow::anyhow!(
+            "Project directory already exists: {:?}",
+            project_dir
+        ));
+    }
 
-const processOrder = aether.workflow('process-order', async (ctx, orderId) => {
-  const order = await ctx.step('fetch', () => console.log('Fetching order', orderId));
-  await ctx.step('charge', () => console.log('Charging order', order.amount));
-  return { success: true };
-});
+    let vars = TemplateVariables::new(&name);
 
-export { processOrder };
-"#;
+    render_template_dir(template_type, &cli_root, &project_dir, &vars)
+        .await
+        .with_context(|| format!("Failed to render template: {}", template))?;
 
-    let package_json = format!(
-        r#"{{
-  "name": "{}",
-  "version": "0.1.0",
-  "scripts": {{
-    "dev": "aether serve",
-    "start": "node dist/index.js"
-  }},
-  "dependencies": {{
-    "@aether/sdk": "^0.1.0"
-  }}
-}}"#,
-        name
-    );
+    println!("✅ Project created at: {:?}", project_dir);
+    println!();
+    println!("Next steps:");
+    println!("  cd {}", name);
+    if template_type == TemplateType::TypeScript {
+        println!("  npm install");
+        println!("  npm run dev");
+    } else if template_type == TemplateType::NestJS {
+        println!("  npm install");
+        println!("  npm run start:dev");
+    } else if template_type == TemplateType::Python {
+        println!("  pip install -e .");
+        println!("  python -m src.main");
+    }
 
-    tokio::fs::write(project_dir.join("workflow.ts"), workflow_content).await?;
-    tokio::fs::write(project_dir.join("package.json"), package_json).await?;
-
-    println!("Project created at: {:?}", project_dir);
     Ok(())
 }
 

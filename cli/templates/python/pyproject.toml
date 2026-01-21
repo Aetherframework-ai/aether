@@ -1,0 +1,21 @@
+[project]
+name = "{{ project_name }}"
+version = "0.1.0"
+description = "Aether Python workflow project"
+requires-python = ">=3.10"
+dependencies = [
+    "aether-framework-sdk>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "mypy"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.10"
