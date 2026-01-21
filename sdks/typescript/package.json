@@ -1,6 +1,6 @@
 {
   "name": "@aetherframework.ai/sdk",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "description": "TypeScript SDK for Aether workflow engine",
   "license": "Apache-2.0",
   "main": "dist/index.js",
@@ -37,14 +37,22 @@
     "typescript": ">=4.0.0"
   },
   "release": {
-    "branches": ["main"],
+    "branches": [
+      "main"
+    ],
     "plugins": [
-      ["@semantic-release/npm", {
-        "pkgRoot": "."
-      }],
-      ["@semantic-release/github", {
-        "assets": []
-      }]
+      [
+        "@semantic-release/npm",
+        {
+          "pkgRoot": "."
+        }
+      ],
+      [
+        "@semantic-release/github",
+        {
+          "assets": []
+        }
+      ]
     ]
   }
 }
