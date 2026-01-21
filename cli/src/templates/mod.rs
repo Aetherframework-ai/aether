@@ -79,13 +79,11 @@ fn to_camel_case(s: &str) -> String {
         } else if next_upper {
             result.push(c.to_ascii_uppercase());
             next_upper = false;
+        } else if is_first {
+            result.push(c.to_ascii_lowercase());
+            is_first = false;
         } else {
-            if is_first {
-                result.push(c.to_ascii_lowercase());
-                is_first = false;
-            } else {
-                result.push(c);
-            }
+            result.push(c);
         }
     }
     result
