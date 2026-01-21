@@ -1,4 +1,4 @@
-import { aether } from '@aether/sdk';
+import { aether } from '@aetherframework.ai/sdk';
 import { {{ workflow_name }} } from './workflows/{{ workflow_filename }}';
 
 async function main() {
