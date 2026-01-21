@@ -74,6 +74,23 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN || secrets.organization.NPM_TOKEN }}
         run: npx semantic-release
 
+      - name: Verify version updates
+        run: |
+          echo "=== TypeScript SDK ==="
+          grep '"version"' sdks/typescript/package.json
+
+          echo "=== NestJS SDK ==="
+          grep '"version"' sdks/nestjs/package.json
+
+          echo "=== Python SDK ==="
+          grep "^version" sdks/python/pyproject.toml
+
+          echo "=== Rust Kernel ==="
+          grep "^version" core/kernel/Cargo.toml
+
+          echo "=== Rust CLI ==="
+          grep "^version" cli/Cargo.toml
+
   publish-crates:
     runs-on: ubuntu-latest
     needs: release
