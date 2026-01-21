@@ -1,6 +1,6 @@
 [package]
 name = "aetherframework-kernel"
-version = "1.0.0"
+version = "0.1.3"
 edition = "2021"
 description = "Core kernel for Aether workflow engine"
 license = "Apache-2.0"

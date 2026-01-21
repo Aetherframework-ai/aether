@@ -1,3 +1,10 @@
+## [0.1.3](https://github.com/Aetherframework-ai/aether/compare/v0.1.2...v0.1.3) (2026-01-21)
+
+
+### Bug Fixes
+
+* collapse else-if block for clippy compliance ([#19](https://github.com/Aetherframework-ai/aether/issues/19)) ([5c499a1](https://github.com/Aetherframework-ai/aether/commit/5c499a1bd0f70a08e5c5712dafacfbd61ab06758))
+
 # 1.0.0 (2026-01-21)
 
 
