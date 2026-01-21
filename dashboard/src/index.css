@@ -1,12 +1,200 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
+
+@plugin "tailwindcss-animate";
 @tailwind components;
 @tailwind utilities;
 
 /* React Flow 样式 */
 @import "@xyflow/react/dist/style.css";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 /* 自定义样式 */
 html, body, #root {
   height: 100%;
   margin: 0;
+}
+
+body {
+  font-family: 'Fira Sans', sans-serif;
+}
+
+code, pre, .font-mono {
+  font-family: 'Fira Code', monospace;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.75rem;
+  /* Light mode - Glassmorphism */
+  --background: oklch(0.98 0.005 250);
+  --foreground: oklch(0.15 0.02 260);
+  --card: oklch(1 0 0 / 70%);
+  --card-foreground: oklch(0.15 0.02 260);
+  --popover: oklch(1 0 0 / 80%);
+  --popover-foreground: oklch(0.15 0.02 260);
+  --primary: oklch(0.59 0.2 260);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0.01 260);
+  --secondary-foreground: oklch(0.2 0.02 260);
+  --muted: oklch(0.95 0.01 260);
+  --muted-foreground: oklch(0.45 0.02 260);
+  --accent: oklch(0.7 0.18 50);
+  --accent-foreground: oklch(0.15 0.02 260);
+  --destructive: oklch(0.55 0.22 25);
+  --border: oklch(0 0 0 / 10%);
+  --input: oklch(0 0 0 / 10%);
+  --ring: oklch(0.59 0.2 260);
+  --chart-1: oklch(0.59 0.2 260);
+  --chart-2: oklch(0.65 0.18 170);
+  --chart-3: oklch(0.7 0.18 50);
+  --chart-4: oklch(0.55 0.22 25);
+  --chart-5: oklch(0.6 0.2 300);
+  --sidebar: oklch(1 0 0 / 70%);
+  --sidebar-foreground: oklch(0.15 0.02 260);
+  --sidebar-primary: oklch(0.59 0.2 260);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.59 0.2 260 / 10%);
+  --sidebar-accent-foreground: oklch(0.15 0.02 260);
+  --sidebar-border: oklch(0 0 0 / 10%);
+  --sidebar-ring: oklch(0.59 0.2 260);
+  /* Glassmorphism specific */
+  --glass-bg: oklch(1 0 0 / 70%);
+  --glass-border: oklch(0 0 0 / 10%);
+  --glass-blur: 16px;
+}
+
+.dark {
+  /* Dark mode - Glassmorphism */
+  --background: oklch(0.13 0.02 260);
+  --foreground: oklch(0.95 0.01 260);
+  --card: oklch(1 0 0 / 5%);
+  --card-foreground: oklch(0.95 0.01 260);
+  --popover: oklch(1 0 0 / 8%);
+  --popover-foreground: oklch(0.95 0.01 260);
+  --primary: oklch(0.65 0.2 260);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(1 0 0 / 10%);
+  --secondary-foreground: oklch(0.95 0.01 260);
+  --muted: oklch(1 0 0 / 10%);
+  --muted-foreground: oklch(0.65 0.01 260);
+  --accent: oklch(0.7 0.18 50);
+  --accent-foreground: oklch(0.95 0.01 260);
+  --destructive: oklch(0.6 0.22 25);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.65 0.2 260);
+  --chart-1: oklch(0.65 0.2 260);
+  --chart-2: oklch(0.7 0.17 170);
+  --chart-3: oklch(0.75 0.18 50);
+  --chart-4: oklch(0.6 0.22 25);
+  --chart-5: oklch(0.65 0.2 300);
+  --sidebar: oklch(1 0 0 / 5%);
+  --sidebar-foreground: oklch(0.95 0.01 260);
+  --sidebar-primary: oklch(0.65 0.2 260);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(1 0 0 / 10%);
+  --sidebar-accent-foreground: oklch(0.95 0.01 260);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.65 0.2 260);
+  /* Glassmorphism specific */
+  --glass-bg: oklch(1 0 0 / 5%);
+  --glass-border: oklch(1 0 0 / 10%);
+  --glass-blur: 16px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ReactFlow custom styles */
+.react-flow__attribution {
+  @apply bg-transparent text-muted-foreground/50;
+}
+
+.react-flow__edge-path {
+  stroke-linecap: round;
+}
+
+.react-flow__handle {
+  @apply transition-all duration-200;
+}
+
+.react-flow__node {
+  @apply transition-shadow duration-200;
+}
+
+.react-flow__node:focus {
+  @apply outline-none;
+}
+
+.react-flow__node.selected {
+  @apply ring-2 ring-primary ring-offset-2 ring-offset-background rounded-xl;
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.5 0 0 / 20%);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0 0 / 30%);
 }

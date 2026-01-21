@@ -69,6 +69,7 @@ where
     ) -> Result<Response<StartWorkflowResponse>, Status> {
         let request = request.into_inner();
         let workflow_id = Uuid::new_v4().to_string();
+        let workflow_type = request.workflow_type.clone();
 
         let workflow = Workflow::new(workflow_id.clone(), request.workflow_type, request.input);
 
@@ -85,6 +86,12 @@ where
                 .await
                 .map_err(|e| Status::internal(e.to_string()))?;
         }
+
+        // 记录 workflow 到 tracker 以便 Dashboard 显示
+        self.scheduler
+            .tracker
+            .start_workflow(workflow_id.clone(), workflow_type)
+            .await;
 
         Ok(Response::new(StartWorkflowResponse {
             workflow_id: workflow_id.clone(),
@@ -247,7 +254,7 @@ where
         request: Request<PollRequest>,
     ) -> Result<Response<Self::PollTasksStream>, Status> {
         let request = request.into_inner();
-        let worker_id = request.worker_id;
+        let worker_id = request.worker_id.clone();
         let max_tasks = if request.max_tasks > 0 {
             request.max_tasks as usize
         } else {

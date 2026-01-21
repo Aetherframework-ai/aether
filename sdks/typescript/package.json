@@ -23,8 +23,8 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@types/google-protobuf": "^3.15.0",
-    "grpc-web": "^1.4.0"
+    "@grpc/grpc-js": "^1.14.3",
+    "@grpc/proto-loader": "^0.8.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

@@ -2,7 +2,7 @@
 	"name": "aether-quickstart",
 	"version": "0.1.0",
 	"scripts": {
-		"dev": "ts-node src/index.ts",
+		"dev": "tsx index.ts",
 		"build": "tsc",
 		"start": "node dist/index.js"
 	},
@@ -10,5 +10,8 @@
 		"@aetherframework.ai/sdk": "file:../../sdks/typescript",
 		"ts-node": "^10.0.0",
 		"typescript": "^5.0.0"
+	},
+	"devDependencies": {
+		"tsx": "^4.21.0"
 	}
 }

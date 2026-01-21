@@ -66,43 +66,51 @@ export interface WorkflowFailedPayload {
   error: string;
 }
 
-// API 响应类型
+// API 响应类型 (snake_case 匹配后端)
 export interface WorkflowListResponse {
   workflows: WorkflowInfoDto[];
 }
 
 export interface WorkflowDetailResponse {
-  workflowId: string;
-  workflowType: string;
-  currentStep: string | null;
-  stepExecutions: StepExecutionInfo[];
-  startedAt: number;
-  completedAt: number | null;
+  workflow_id: string;
+  workflow_type: string;
+  current_step: string | null;
+  step_executions: StepExecutionDto[];
+  started_at: number;
+  completed_at: number | null;
+}
+
+export interface StepExecutionDto {
+  step_name: string;
+  status: string;
+  started_at: number | null;
+  completed_at: number | null;
+  attempt: number;
 }
 
 export interface WorkflowInfoDto {
-  workflowId: string;
-  workflowType: string;
-  currentStep: string | null;
-  startedAt: number;
+  workflow_id: string;
+  workflow_type: string;
+  current_step: string | null;
+  started_at: number;
 }
 
-// Dashboard API 请求
+// Dashboard API 请求 (Rust enum 格式)
 export type ApiRequest =
-  | { type: 'list_active_workflows' }
-  | { type: 'get_workflow'; workflowId: string }
-  | { type: 'get_workflow_history'; workflowId: string };
+  | { ListActiveWorkflows: null }
+  | { GetWorkflow: { workflow_id: string } }
+  | { GetWorkflowHistory: { workflow_id: string } };
 
-// Dashboard API 响应
+// Dashboard API 响应 (Rust enum 格式)
 export type ApiResponse =
-  | { type: 'workflow_list'; workflows: WorkflowInfoDto[] }
-  | { type: 'workflow_detail'; detail: WorkflowDetailResponse }
-  | { type: 'workflow_history'; history: StepHistoryDto[] }
-  | { type: 'error'; message: string };
+  | { WorkflowList: { workflows: WorkflowInfoDto[] } }
+  | { WorkflowDetail: { detail: WorkflowDetailResponse } }
+  | { WorkflowHistory: { history: StepHistoryDto[] } }
+  | { Error: { message: string } };
 
 export interface StepHistoryDto {
-  stepName: string;
-  status: StepExecutionStatus;
+  step_name: string;
+  status: string;
   timestamp: number;
-  durationMs: number | null;
+  duration_ms: number | null;
 }

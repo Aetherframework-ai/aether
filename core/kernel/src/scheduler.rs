@@ -172,53 +172,57 @@ impl<P: Persistence> Scheduler<P> {
     }
 
     pub async fn complete_task(&self, task_id: &str, result: Vec<u8>) -> anyhow::Result<()> {
-        let mut running_tasks = self.running_tasks.lock().await;
+        // 解析 task_id (格式: workflow_id-step_name)
+        // 注意: workflow_id 是 UUID，包含 '-'，所以我们从后往前找最后一个 '-'
+        let parts: Vec<&str> = task_id.rsplitn(2, '-').collect();
+        if parts.len() != 2 {
+            return Err(anyhow::anyhow!("Invalid task_id format: {}", task_id));
+        }
+        let step_name = parts[0];
+        let workflow_id = parts[1];
 
-        if let Some(task) = running_tasks.remove(task_id) {
-            // 保存 step 结果到持久化层
-            self.persistence
-                .save_step_result(&task.workflow_id, &task.step_name, result.clone())
-                .await?;
+        // 保存 step 结果到持久化层
+        self.persistence
+            .save_step_result(workflow_id, step_name, result.clone())
+            .await?;
 
-            // 获取 workflow 信息用于追踪和广播
-            if let Some(workflow) = self
-                .persistence
-                .get_workflow(&task.workflow_id)
-                .await
-                .unwrap()
-            {
-                // 记录 step 完成到追踪器
-                self.tracker
-                    .step_completed(&task.workflow_id, &task.step_name, result.clone())
-                    .await;
+        // 获取 workflow 信息用于追踪和广播
+        if let Some(workflow) = self.persistence.get_workflow(workflow_id).await? {
+            // 记录 step 完成到追踪器
+            self.tracker
+                .step_completed(workflow_id, step_name, result.clone())
+                .await;
 
-                // 广播 step 完成事件
-                let _ = self
-                    .broadcaster
-                    .broadcast_step_completed(
-                        &task.workflow_id,
-                        &workflow.workflow_type,
-                        &task.step_name,
-                        result.clone(),
-                    )
-                    .await;
+            // 广播 step 完成事件
+            let _ = self
+                .broadcaster
+                .broadcast_step_completed(
+                    workflow_id,
+                    &workflow.workflow_type,
+                    step_name,
+                    result.clone(),
+                )
+                .await;
 
-                if let Some(new_state) = workflow.state.step_completed() {
-                    // 如果 workflow 完成，广播完成事件
-                    let is_completed = matches!(new_state, WorkflowState::Completed { .. });
-
+            // 对于 "start" step，整个 workflow 执行完成
+            // 使用 complete() 而不是 step_completed() 来标记为已完成
+            if step_name == "start" {
+                if let Some(completed_state) = workflow.state.complete(result.clone()) {
                     self.persistence
-                        .update_workflow_state(&workflow.id, new_state)
+                        .update_workflow_state(workflow_id, completed_state)
                         .await?;
 
-                    if is_completed {
-                        self.tracker.workflow_completed(&workflow.id).await;
-                        let _ = self
-                            .broadcaster
-                            .broadcast_workflow_completed(&workflow.id, &workflow.workflow_type, result)
-                            .await;
-                    }
+                    self.tracker.workflow_completed(workflow_id).await;
+                    let _ = self
+                        .broadcaster
+                        .broadcast_workflow_completed(workflow_id, &workflow.workflow_type, result)
+                        .await;
                 }
+            } else if let Some(new_state) = workflow.state.step_completed() {
+                // 普通 step 完成，继续执行下一个 step
+                self.persistence
+                    .update_workflow_state(workflow_id, new_state)
+                    .await?;
             }
         }
 

@@ -10,62 +10,50 @@ use anyhow::Context;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::sync::Arc;
 
-/// Wrapper enum for persistence backends
+/// Wrapper enum for persistence backends (uses Arc for shared state)
+#[derive(Clone)]
 enum PersistenceBackend {
-    L0Memory(L0MemoryStore),
-    L1Snapshot(L1SnapshotStore),
-    L2StateActionLog(L2StateActionStore),
-}
-
-impl Clone for PersistenceBackend {
-    fn clone(&self) -> Self {
-        match self {
-            PersistenceBackend::L0Memory(_) => PersistenceBackend::L0Memory(L0MemoryStore::new()),
-            PersistenceBackend::L1Snapshot(_) => {
-                PersistenceBackend::L1Snapshot(L1SnapshotStore::new(100))
-            }
-            PersistenceBackend::L2StateActionLog(_) => {
-                PersistenceBackend::L2StateActionLog(L2StateActionStore::new())
-            }
-        }
-    }
+    L0Memory(Arc<L0MemoryStore>),
+    L1Snapshot(Arc<L1SnapshotStore>),
+    L2StateActionLog(Arc<L2StateActionStore>),
 }
 
 #[async_trait::async_trait]
 impl Persistence for PersistenceBackend {
     async fn save_workflow(&self, workflow: &Workflow) -> anyhow::Result<()> {
         match self {
-            PersistenceBackend::L0Memory(store) => store.save_workflow(workflow).await,
-            PersistenceBackend::L1Snapshot(store) => store.save_workflow(workflow).await,
-            PersistenceBackend::L2StateActionLog(store) => store.save_workflow(workflow).await,
+            PersistenceBackend::L0Memory(store) => store.as_ref().save_workflow(workflow).await,
+            PersistenceBackend::L1Snapshot(store) => store.as_ref().save_workflow(workflow).await,
+            PersistenceBackend::L2StateActionLog(store) => store.as_ref().save_workflow(workflow).await,
         }
     }
 
     async fn get_workflow(&self, id: &str) -> anyhow::Result<Option<Workflow>> {
         match self {
-            PersistenceBackend::L0Memory(store) => store.get_workflow(id).await,
-            PersistenceBackend::L1Snapshot(store) => store.get_workflow(id).await,
-            PersistenceBackend::L2StateActionLog(store) => store.get_workflow(id).await,
+            PersistenceBackend::L0Memory(store) => store.as_ref().get_workflow(id).await,
+            PersistenceBackend::L1Snapshot(store) => store.as_ref().get_workflow(id).await,
+            PersistenceBackend::L2StateActionLog(store) => store.as_ref().get_workflow(id).await,
         }
     }
 
     async fn list_workflows(&self, workflow_type: Option<&str>) -> anyhow::Result<Vec<Workflow>> {
         match self {
-            PersistenceBackend::L0Memory(store) => store.list_workflows(workflow_type).await,
-            PersistenceBackend::L1Snapshot(store) => store.list_workflows(workflow_type).await,
+            PersistenceBackend::L0Memory(store) => store.as_ref().list_workflows(workflow_type).await,
+            PersistenceBackend::L1Snapshot(store) => store.as_ref().list_workflows(workflow_type).await,
             PersistenceBackend::L2StateActionLog(store) => {
-                store.list_workflows(workflow_type).await
+                store.as_ref().list_workflows(workflow_type).await
             }
         }
     }
 
     async fn update_workflow_state(&self, id: &str, state: WorkflowState) -> anyhow::Result<()> {
         match self {
-            PersistenceBackend::L0Memory(store) => store.update_workflow_state(id, state).await,
-            PersistenceBackend::L1Snapshot(store) => store.update_workflow_state(id, state).await,
+            PersistenceBackend::L0Memory(store) => store.as_ref().update_workflow_state(id, state).await,
+            PersistenceBackend::L1Snapshot(store) => store.as_ref().update_workflow_state(id, state).await,
             PersistenceBackend::L2StateActionLog(store) => {
-                store.update_workflow_state(id, state).await
+                store.as_ref().update_workflow_state(id, state).await
             }
         }
     }
@@ -78,13 +66,13 @@ impl Persistence for PersistenceBackend {
     ) -> anyhow::Result<()> {
         match self {
             PersistenceBackend::L0Memory(store) => {
-                store.save_step_result(workflow_id, step_name, result).await
+                store.as_ref().save_step_result(workflow_id, step_name, result).await
             }
             PersistenceBackend::L1Snapshot(store) => {
-                store.save_step_result(workflow_id, step_name, result).await
+                store.as_ref().save_step_result(workflow_id, step_name, result).await
             }
             PersistenceBackend::L2StateActionLog(store) => {
-                store.save_step_result(workflow_id, step_name, result).await
+                store.as_ref().save_step_result(workflow_id, step_name, result).await
             }
         }
     }
@@ -96,13 +84,13 @@ impl Persistence for PersistenceBackend {
     ) -> anyhow::Result<Option<Vec<u8>>> {
         match self {
             PersistenceBackend::L0Memory(store) => {
-                store.get_step_result(workflow_id, step_name).await
+                store.as_ref().get_step_result(workflow_id, step_name).await
             }
             PersistenceBackend::L1Snapshot(store) => {
-                store.get_step_result(workflow_id, step_name).await
+                store.as_ref().get_step_result(workflow_id, step_name).await
             }
             PersistenceBackend::L2StateActionLog(store) => {
-                store.get_step_result(workflow_id, step_name).await
+                store.as_ref().get_step_result(workflow_id, step_name).await
             }
         }
     }
@@ -278,19 +266,19 @@ async fn serve_command(
         }
     };
 
-    // 创建持久化层
+    // 创建持久化层 (使用 Arc 共享状态)
     let persistence = match persistence_level {
         PersistenceLevel::L0Memory => {
             println!("📦 Using L0 Memory persistence (no durability)");
-            PersistenceBackend::L0Memory(L0MemoryStore::new())
+            PersistenceBackend::L0Memory(Arc::new(L0MemoryStore::new()))
         }
         PersistenceLevel::L1Snapshot => {
             println!("📦 Using L1 Snapshot persistence");
-            PersistenceBackend::L1Snapshot(L1SnapshotStore::new(100))
+            PersistenceBackend::L1Snapshot(Arc::new(L1SnapshotStore::new(100)))
         }
         PersistenceLevel::L2StateActionLog => {
             println!("📦 Using L2 State-Action-Log persistence (full durability)");
-            PersistenceBackend::L2StateActionLog(L2StateActionStore::new())
+            PersistenceBackend::L2StateActionLog(Arc::new(L2StateActionStore::new()))
         }
     };
 
