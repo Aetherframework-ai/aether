@@ -1,11 +1,21 @@
 [package]
 name = "aetherframework-cli"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "CLI tool for Aether workflow engine"
 license = "Apache-2.0"
 
+[[bin]]
+name = "aether"
+path = "src/main.rs"
+
+[[bin]]
+name = "ae"
+path = "src/main.rs"
+
 [dependencies]
+aetherframework-kernel = { path = "../core/kernel" }
+async-trait = "0.1"
 clap = { version = "4.0", features = ["derive"] }
 tonic = { version = "0.10", features = ["transport"] }
 prost-types = "0.12"

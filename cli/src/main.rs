@@ -1,5 +1,112 @@
+use aetherframework_cli::templates::{render_template_dir, TemplateType, TemplateVariables};
+use aetherframework_kernel::persistence::l0_memory::L0MemoryStore;
+use aetherframework_kernel::persistence::l1_snapshot::L1SnapshotStore;
+use aetherframework_kernel::persistence::l2_state_action_log::L2StateActionStore;
+use aetherframework_kernel::persistence::{Persistence, PersistenceLevel};
+use aetherframework_kernel::scheduler::Scheduler;
+use aetherframework_kernel::server;
+use aetherframework_kernel::state_machine::{Workflow, WorkflowState};
+use anyhow::Context;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+use std::str::FromStr;
+
+/// Wrapper enum for persistence backends
+enum PersistenceBackend {
+    L0Memory(L0MemoryStore),
+    L1Snapshot(L1SnapshotStore),
+    L2StateActionLog(L2StateActionStore),
+}
+
+impl Clone for PersistenceBackend {
+    fn clone(&self) -> Self {
+        match self {
+            PersistenceBackend::L0Memory(_) => PersistenceBackend::L0Memory(L0MemoryStore::new()),
+            PersistenceBackend::L1Snapshot(_) => {
+                PersistenceBackend::L1Snapshot(L1SnapshotStore::new(100))
+            }
+            PersistenceBackend::L2StateActionLog(_) => {
+                PersistenceBackend::L2StateActionLog(L2StateActionStore::new())
+            }
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl Persistence for PersistenceBackend {
+    async fn save_workflow(&self, workflow: &Workflow) -> anyhow::Result<()> {
+        match self {
+            PersistenceBackend::L0Memory(store) => store.save_workflow(workflow).await,
+            PersistenceBackend::L1Snapshot(store) => store.save_workflow(workflow).await,
+            PersistenceBackend::L2StateActionLog(store) => store.save_workflow(workflow).await,
+        }
+    }
+
+    async fn get_workflow(&self, id: &str) -> anyhow::Result<Option<Workflow>> {
+        match self {
+            PersistenceBackend::L0Memory(store) => store.get_workflow(id).await,
+            PersistenceBackend::L1Snapshot(store) => store.get_workflow(id).await,
+            PersistenceBackend::L2StateActionLog(store) => store.get_workflow(id).await,
+        }
+    }
+
+    async fn list_workflows(&self, workflow_type: Option<&str>) -> anyhow::Result<Vec<Workflow>> {
+        match self {
+            PersistenceBackend::L0Memory(store) => store.list_workflows(workflow_type).await,
+            PersistenceBackend::L1Snapshot(store) => store.list_workflows(workflow_type).await,
+            PersistenceBackend::L2StateActionLog(store) => {
+                store.list_workflows(workflow_type).await
+            }
+        }
+    }
+
+    async fn update_workflow_state(&self, id: &str, state: WorkflowState) -> anyhow::Result<()> {
+        match self {
+            PersistenceBackend::L0Memory(store) => store.update_workflow_state(id, state).await,
+            PersistenceBackend::L1Snapshot(store) => store.update_workflow_state(id, state).await,
+            PersistenceBackend::L2StateActionLog(store) => {
+                store.update_workflow_state(id, state).await
+            }
+        }
+    }
+
+    async fn save_step_result(
+        &self,
+        workflow_id: &str,
+        step_name: &str,
+        result: Vec<u8>,
+    ) -> anyhow::Result<()> {
+        match self {
+            PersistenceBackend::L0Memory(store) => {
+                store.save_step_result(workflow_id, step_name, result).await
+            }
+            PersistenceBackend::L1Snapshot(store) => {
+                store.save_step_result(workflow_id, step_name, result).await
+            }
+            PersistenceBackend::L2StateActionLog(store) => {
+                store.save_step_result(workflow_id, step_name, result).await
+            }
+        }
+    }
+
+    async fn get_step_result(
+        &self,
+        workflow_id: &str,
+        step_name: &str,
+    ) -> anyhow::Result<Option<Vec<u8>>> {
+        match self {
+            PersistenceBackend::L0Memory(store) => {
+                store.get_step_result(workflow_id, step_name).await
+            }
+            PersistenceBackend::L1Snapshot(store) => {
+                store.get_step_result(workflow_id, step_name).await
+            }
+            PersistenceBackend::L2StateActionLog(store) => {
+                store.get_step_result(workflow_id, step_name).await
+            }
+        }
+    }
+}
 
 #[derive(Parser, Debug)]
 #[command(name = "aether")]
@@ -33,6 +140,9 @@ enum Commands {
         /// Output directory
         #[arg(short, long, default_value = ".")]
         output: PathBuf,
+        /// Project template: ts | nestjs | python
+        #[arg(short, long, default_value = "ts")]
+        template: String,
     },
     /// Generate configuration
     Gen {
@@ -100,7 +210,11 @@ async fn main() -> anyhow::Result<()> {
             http_port,
             persistence,
         } => serve_command(db, grpc_port, http_port, persistence).await,
-        Commands::Init { name, output } => init_command(name, output).await,
+        Commands::Init {
+            name,
+            output,
+            template,
+        } => init_command(name, output, template).await,
         Commands::Gen { action } => gen_command(action).await,
         Commands::Workflow { action } => workflow_command(action).await,
         Commands::Status { workflow_id } => status_command(workflow_id).await,
@@ -119,52 +233,109 @@ async fn serve_command(
     println!("gRPC Port: {}", grpc_port);
     println!("HTTP Port: {}", http_port);
     println!("Persistence: {}", persistence);
+    println!();
 
-    // TODO: 实现服务器启动逻辑
-    println!("Server started successfully!");
+    // 创建数据目录
+    if let Some(parent) = db.parent() {
+        if !parent.exists() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+    }
+
+    // 解析持久化模式（目前只支持 memory，其他模式需要后续实现文件持久化）
+    let persistence_level = match persistence.to_lowercase().as_str() {
+        "memory" => PersistenceLevel::L0Memory,
+        "snapshot" => {
+            println!("⚠️  Snapshot persistence mode not yet implemented, using memory mode.");
+            PersistenceLevel::L0Memory
+        }
+        "state-action-log" => {
+            println!(
+                "⚠️  State-Action-Log persistence mode not yet implemented, using memory mode."
+            );
+            PersistenceLevel::L0Memory
+        }
+        _ => {
+            eprintln!(
+                "Unknown persistence mode: {}. Using 'memory' instead.",
+                persistence
+            );
+            PersistenceLevel::L0Memory
+        }
+    };
+
+    // 创建持久化层
+    let persistence = match persistence_level {
+        PersistenceLevel::L0Memory => {
+            println!("📦 Using L0 Memory persistence (no durability)");
+            PersistenceBackend::L0Memory(L0MemoryStore::new())
+        }
+        PersistenceLevel::L1Snapshot => {
+            println!("📦 Using L1 Snapshot persistence");
+            PersistenceBackend::L1Snapshot(L1SnapshotStore::new(100))
+        }
+        PersistenceLevel::L2StateActionLog => {
+            println!("📦 Using L2 State-Action-Log persistence (full durability)");
+            PersistenceBackend::L2StateActionLog(L2StateActionStore::new())
+        }
+    };
+
+    // 创建调度器
+    let scheduler = Scheduler::new(persistence);
+
+    // 启动 gRPC 服务器
+    let addr = format!("0.0.0.0:{}", grpc_port);
+    println!();
+    println!("🚀 Aether server starting on {}", addr);
+    println!();
+    println!("Press Ctrl+C to stop the server");
+    println!();
+
+    // 使用 aetherframework-kernel 的服务器启动函数
+    server::start_server(scheduler, &addr).await?;
 
     Ok(())
 }
 
-async fn init_command(name: String, output: PathBuf) -> anyhow::Result<()> {
+async fn init_command(name: String, output: PathBuf, template: String) -> anyhow::Result<()> {
     println!("Initializing Aether project: {}", name);
+    println!("Template: {}", template);
+    println!();
 
-    // 创建项目模板
+    let template_type = TemplateType::from_str(&template)
+        .with_context(|| format!("Invalid template type: {}", template))?;
+
+    let cli_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let project_dir = output.join(&name);
-    tokio::fs::create_dir_all(&project_dir).await?;
 
-    // 生成基本文件
-    let workflow_content = r#"
-import { aether } from '@aether/sdk';
+    if project_dir.exists() {
+        return Err(anyhow::anyhow!(
+            "Project directory already exists: {:?}",
+            project_dir
+        ));
+    }
 
-const processOrder = aether.workflow('process-order', async (ctx, orderId) => {
-  const order = await ctx.step('fetch', () => console.log('Fetching order', orderId));
-  await ctx.step('charge', () => console.log('Charging order', order.amount));
-  return { success: true };
-});
+    let vars = TemplateVariables::new(&name);
 
-export { processOrder };
-"#;
+    render_template_dir(template_type, &cli_root, &project_dir, &vars)
+        .await
+        .with_context(|| format!("Failed to render template: {}", template))?;
 
-    let package_json = format!(
-        r#"{{
-  "name": "{}",
-  "version": "0.1.0",
-  "scripts": {{
-    "dev": "aether serve",
-    "start": "node dist/index.js"
-  }},
-  "dependencies": {{
-    "@aether/sdk": "^0.1.0"
-  }}
-}}"#,
-        name
-    );
+    println!("✅ Project created at: {:?}", project_dir);
+    println!();
+    println!("Next steps:");
+    println!("  cd {}", name);
+    if template_type == TemplateType::TypeScript {
+        println!("  npm install");
+        println!("  npm run dev");
+    } else if template_type == TemplateType::NestJS {
+        println!("  npm install");
+        println!("  npm run start:dev");
+    } else if template_type == TemplateType::Python {
+        println!("  pip install -e .");
+        println!("  python -m src.main");
+    }
 
-    tokio::fs::write(project_dir.join("workflow.ts"), workflow_content).await?;
-    tokio::fs::write(project_dir.join("package.json"), package_json).await?;
-
-    println!("Project created at: {:?}", project_dir);
     Ok(())
 }
 

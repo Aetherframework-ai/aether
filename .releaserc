@@ -1,43 +1,101 @@
 {
-  "branches": ["main"],
+  "branches": [
+    "main"
+  ],
   "repositoryUrl": "https://github.com/Aetherframework-ai/aether",
   "tagFormat": "v${version}",
   "plugins": [
-    ["@semantic-release/commit-analyzer", {
-      "preset": "conventionalcommits",
-      "releaseRules": [
-        {"type": "feat", "release": "minor"},
-        {"type": "fix", "release": "patch"},
-        {"type": "perf", "release": "patch"},
-        {"type": "revert", "release": "patch"},
-        {"type": "docs", "release": false},
-        {"type": "style", "release": false},
-        {"type": "refactor", "release": false},
-        {"type": "test", "release": false},
-        {"type": "build", "release": false},
-        {"type": "ci", "release": false},
-        {"type": "chore", "release": false}
-      ]
-    }],
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          {
+            "type": "feat",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "release": "patch"
+          },
+          {
+            "type": "docs",
+            "release": false
+          },
+          {
+            "type": "style",
+            "release": false
+          },
+          {
+            "type": "refactor",
+            "release": false
+          },
+          {
+            "type": "test",
+            "release": false
+          },
+          {
+            "type": "build",
+            "release": false
+          },
+          {
+            "type": "ci",
+            "release": false
+          },
+          {
+            "type": "chore",
+            "release": false
+          }
+        ]
+      }
+    ],
     "@semantic-release/release-notes-generator",
-    ["@semantic-release/changelog", {
-      "changelogFile": "CHANGELOG.md"
-    }],
-    ["@semantic-release/npm", {
-      "pkgRoot": "sdks/typescript"
-    }],
-    ["@semantic-release/npm", {
-      "pkgRoot": "sdks/nestjs"
-    }],
-    ["@semantic-release/exec", {
-      "prepareCmd": "sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' core/kernel/Cargo.toml && sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' cli/Cargo.toml && sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' sdks/python/pyproject.toml"
-    }],
-    ["@semantic-release/git", {
-      "assets": ["CHANGELOG.md"],
-      "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
-    }],
-    ["@semantic-release/github", {
-      "assets": []
-    }]
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "pkgRoot": "sdks/typescript"
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "pkgRoot": "sdks/nestjs"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "sed -i 's/\"version\": \".*\"/\"version\": \"${nextRelease.version}\"/' sdks/typescript/package.json && sed -i 's/\"version\": \".*\"/\"version\": \"${nextRelease.version}\"/' sdks/nestjs/package.json && sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' core/kernel/Cargo.toml && sed -i 's/^version = \".*\"/version = \"${nextRelease.version}\"/' cli/Cargo.toml && sed -i 's/version = \".*\"/version = \"${nextRelease.version}\"/' sdks/python/pyproject.toml"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "CHANGELOG.md"
+        ],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": []
+      }
+    ]
   ]
 }
