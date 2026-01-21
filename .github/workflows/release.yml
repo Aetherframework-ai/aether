@@ -93,8 +93,10 @@ jobs:
 
       - name: Fetch latest commits
         run: |
-          git fetch origin main
-          git pull origin main
+          set -e
+          BRANCH_NAME="${{ github.event.repository.default_branch }}"
+          git fetch origin "$BRANCH_NAME"
+          git pull origin "$BRANCH_NAME"
 
       - name: Publish aether-kernel
         env:
