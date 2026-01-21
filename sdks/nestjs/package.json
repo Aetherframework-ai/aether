@@ -1,6 +1,6 @@
 {
 	"name": "@aetherframework.ai/nestjs",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "NestJS SDK for Aether workflow engine",
 	"license": "Apache-2.0",
 	"main": "dist/index.js",
