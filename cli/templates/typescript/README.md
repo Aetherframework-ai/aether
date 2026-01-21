@@ -23,4 +23,4 @@ src/
 ## Learn More
 
 - [Aether Documentation](https://aether.dev)
-- [@aether/sdk npm](https://www.npmjs.com/package/@aether/sdk)
+- [@aetherframework.ai/sdk npm](https://www.npmjs.com/package/@aetherframework.ai/sdk)

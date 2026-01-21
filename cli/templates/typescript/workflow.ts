@@ -1,4 +1,4 @@
-import { aether } from '@aether/sdk';
+import { aether } from '@aetherframework.ai/sdk';
 
 const {{ workflow_name }} = aether.workflow('{{ workflow_name }}', async (ctx, input: {{ input_type }}) => {
   // TODO: 实现工作流逻辑

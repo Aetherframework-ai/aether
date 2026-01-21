@@ -1,14 +1,14 @@
 {
-  "name": "aether-quickstart",
-  "version": "0.1.0",
-  "scripts": {
-    "dev": "ts-node src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
-  },
-  "dependencies": {
-    "@aether/sdk": "file:../../sdks/typescript",
-    "ts-node": "^10.0.0",
-    "typescript": "^5.0.0"
-  }
+	"name": "aether-quickstart",
+	"version": "0.1.0",
+	"scripts": {
+		"dev": "ts-node src/index.ts",
+		"build": "tsc",
+		"start": "node dist/index.js"
+	},
+	"dependencies": {
+		"@aetherframework.ai/sdk": "file:../../sdks/typescript",
+		"ts-node": "^10.0.0",
+		"typescript": "^5.0.0"
+	}
 }

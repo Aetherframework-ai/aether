@@ -33,7 +33,7 @@ aether serve --grpc-port 7233 --http-port 7234 --persistence snapshot
 ### 2. 创建你的第一个工作流
 
 ```typescript
-import { aether } from '@aether/sdk';
+import { aether } from '@aetherframework.ai/sdk';
 
 const client = aether({ serverUrl: 'http://localhost:7233' });
 
@@ -91,11 +91,11 @@ aether --help
 ### 安装 TypeScript SDK
 
 ```bash
-npm install @aether/sdk
+npm install @aetherframework.ai/sdk
 # 或
-yarn add @aether/sdk
+yarn add @aetherframework.ai/sdk
 # 或
-pnpm add @aether/sdk
+pnpm add @aetherframework.ai/sdk
 ```
 
 ### 从源码构建
@@ -211,7 +211,7 @@ aether serve --persistence state-action-log  # L2: 完全持久化
 #### AetherClient
 
 ```typescript
-import { aether } from '@aether/sdk';
+import { aether } from '@aetherframework.ai/sdk';
 
 const client = aether({
   serverUrl: 'http://localhost:7233',
@@ -486,7 +486,7 @@ Aether 支持水平扩展：
 **位置：** `examples/quickstart/`
 
 ```typescript
-import { aether } from '@aether/sdk';
+import { aether } from '@aetherframework.ai/sdk';
 
 const client = aether({ serverUrl: 'http://localhost:7233' });
 
@@ -529,7 +529,7 @@ npm run dev
 **位置：** `examples/order-processing/`
 
 ```typescript
-import { aether } from '@aether/sdk';
+import { aether } from '@aetherframework.ai/sdk';
 
 const client = aether({ serverUrl: 'http://localhost:7233' });
 

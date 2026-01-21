@@ -5,7 +5,7 @@ NestJS SDK for Aether workflow engine.
 ## Installation
 
 ```bash
-npm install @aether/nestjs @aether/sdk
+npm install @aether/nestjs @aetherframework.ai/sdk
 ```
 
 ## Quick Start
