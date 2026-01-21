@@ -9,27 +9,12 @@
       "@semantic-release/commit-analyzer",
       {
         "preset": "conventionalcommits",
-        "presetConfig": {
-          "types": [
-            { "type": "feat", "section": "Features" },
-            { "type": "fix", "section": "Bug Fixes" },
-            { "type": "perf", "section": "Performance" },
-            { "type": "revert", "section": "Reverts" },
-            { "type": "docs", "section": "Documentation", "type": "skip" },
-            { "type": "style", "section": "Styles", "type": "skip" },
-            { "type": "refactor", "section": "Code Refactoring", "type": "skip" },
-            { "type": "test", "section": "Tests", "type": "skip" },
-            { "type": "build", "section": "Build System", "type": "skip" },
-            { "type": "ci", "section": "CI", "type": "skip" },
-            { "type": "chore", "section": "Chores", "type": "skip" }
-          ]
-        },
         "releaseRules": [
+          { "breaking": true, "release": "minor" },
           { "type": "feat", "release": "minor" },
           { "type": "fix", "release": "patch" },
           { "type": "perf", "release": "patch" },
           { "type": "revert", "release": "patch" },
-          { "type": "BREAKING CHANGE", "release": "major", "majorVersionChannel": "legacy" },
           { "type": "docs", "release": false },
           { "type": "style", "release": false },
           { "type": "refactor", "release": false },
