@@ -1,3 +1,10 @@
+## [0.1.4](https://github.com/Aetherframework-ai/aether/compare/v0.1.3...v0.1.4) (2026-01-21)
+
+
+### Bug Fixes
+
+* add version to aetherframework-kernel dependency for crates.io publish ([#20](https://github.com/Aetherframework-ai/aether/issues/20)) ([509766b](https://github.com/Aetherframework-ai/aether/commit/509766b4aed04a68c2f2e96954463e2b2c1eab5a))
+
 ## [0.1.3](https://github.com/Aetherframework-ai/aether/compare/v0.1.2...v0.1.3) (2026-01-21)
 
 
