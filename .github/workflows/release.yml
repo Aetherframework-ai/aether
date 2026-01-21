@@ -119,6 +119,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch latest commits
+        run: |
+          set -e
+          BRANCH_NAME="${{ github.event.repository.default_branch }}"
+          git fetch origin "$BRANCH_NAME"
+          git pull origin "$BRANCH_NAME"
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
