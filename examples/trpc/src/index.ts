@@ -1,58 +1,55 @@
-import { initTRPC } from '@trpc/server';
-import { createHTTPServer } from '@trpc/server/adapters/standalone';
+// examples/trpc/src/index.ts
 import { createAetherTrpc } from '@aetherframework.ai/trpc';
+import { createHTTPServer } from '@trpc/server/adapters/standalone';
 import { z } from 'zod';
 
-const t = initTRPC.create();
-
-// 创建 Aether tRPC 实例
-const aether = createAetherTrpc({
+// 创建增强的 tRPC 实例
+const { t, aether } = createAetherTrpc({
   serverUrl: 'localhost:7233',
   serviceName: 'order-service',
   group: 'default',
 });
 
-// 定义 tRPC router
+// 定义 router
 const router = t.router({
   health: t.procedure.query(() => ({ status: 'ok' })),
 
-  // 使用 aether.step() 注册为 Aether step
+  // 使用 mutationStep - 自动推断名称为 'processOrder'
   processOrder: t.procedure
     .input(z.object({ orderId: z.string(), amount: z.number() }))
-    .mutation(aether.step('process-order', async ({ input }: { input: { orderId: string; amount: number } }) => {
+    .mutationStep(async ({ input }) => {
       console.log(`Processing order: ${input.orderId}`);
-
-      // 业务逻辑
-      const result = {
+      return {
         success: true,
         orderId: input.orderId,
         amount: input.amount,
         processedAt: new Date().toISOString(),
       };
+    }),
 
-      return result;
-    })),
-
+  // 使用 queryStep - 显式指定名称
   getOrder: t.procedure
     .input(z.object({ orderId: z.string() }))
-    .query(aether.step('get-order', async ({ input }: { input: { orderId: string } }) => {
-      // 获取订单逻辑
+    .queryStep('get-order', async ({ input }) => {
       return {
         orderId: input.orderId,
         status: 'pending',
       };
-    })),
+    }),
 });
 
 export type AppRouter = typeof router;
 
-// 启动 tRPC HTTP 服务
+// 绑定 router 并启动
 const server = createHTTPServer({
   router,
   createContext: () => ({}),
 });
 
 async function main() {
+  // 绑定 router
+  aether.bindRouter(router);
+
   // 启动 Aether worker
   console.log('[Main] Starting Aether worker...');
   await aether.serve();
