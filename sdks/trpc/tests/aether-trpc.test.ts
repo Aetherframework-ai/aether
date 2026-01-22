@@ -108,6 +108,104 @@ describe('StepMeta types', () => {
 });
 
 import { createProcedureBuilderProxy } from '../src/procedure-builder-proxy';
+import { createAetherTrpc as createAetherTrpcNew } from '../src/create-aether-trpc';
+
+// Mock @trpc/server
+jest.mock('@trpc/server', () => ({
+  initTRPC: {
+    create: jest.fn().mockReturnValue({
+      procedure: {
+        input: jest.fn().mockReturnThis(),
+        mutation: jest.fn().mockReturnValue({ _def: {} }),
+        query: jest.fn().mockReturnValue({ _def: {} }),
+        _def: { inputs: [] },
+      },
+      router: jest.fn().mockReturnValue({ _def: { procedures: {} } }),
+      middleware: jest.fn(),
+    }),
+  },
+}));
+
+describe('createAetherTrpc (new API)', () => {
+  it('should return t and aether objects', () => {
+    const { t, aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    expect(t).toBeDefined();
+    expect(t.procedure).toBeDefined();
+    expect(t.router).toBeDefined();
+    expect(aether).toBeDefined();
+    expect(aether.bindRouter).toBeDefined();
+    expect(aether.serve).toBeDefined();
+  });
+
+  it('t.procedure should have mutationStep method', () => {
+    const { t } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    expect(typeof (t.procedure as any).mutationStep).toBe('function');
+  });
+
+  it('t.procedure should have queryStep method', () => {
+    const { t } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    expect(typeof (t.procedure as any).queryStep).toBe('function');
+  });
+
+  it('aether should have stop method', () => {
+    const { aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    expect(typeof aether.stop).toBe('function');
+  });
+
+  it('aether should have getSteps method', () => {
+    const { aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    expect(typeof aether.getSteps).toBe('function');
+  });
+
+  it('aether should have getWorkerId method', () => {
+    const { aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    expect(typeof aether.getWorkerId).toBe('function');
+  });
+
+  it('should generate workerId if not provided', () => {
+    const { aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    expect(aether.getWorkerId()).toBeDefined();
+    expect(aether.getWorkerId().startsWith('trpc-')).toBe(true);
+  });
+
+  it('should use custom workerId if provided', () => {
+    const { aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+      workerId: 'my-custom-worker',
+    });
+
+    expect(aether.getWorkerId()).toBe('my-custom-worker');
+  });
+});
 
 describe('createProcedureBuilderProxy', () => {
   it('should add mutationStep method to procedure builder', () => {
