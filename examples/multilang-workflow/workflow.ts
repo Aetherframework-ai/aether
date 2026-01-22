@@ -73,6 +73,11 @@ async function main() {
   console.log("=".repeat(50));
   console.log("");
 
+  // 启动 worker 来执行工作流
+  await client.serve([multilangDemo]);
+  console.log("Worker started, executing workflow...");
+  console.log("");
+
   const result = await multilangDemo.startAndWait({
     message: "Hello Aether!",
   });
