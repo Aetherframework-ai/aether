@@ -1,0 +1,20 @@
+{
+  "name": "@aetherframework.ai/trpc-example",
+  "version": "0.1.0",
+  "description": "tRPC SDK usage example",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@aetherframework.ai/trpc": "../sdks/trpc",
+    "@trpc/server": "^10.45.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}
