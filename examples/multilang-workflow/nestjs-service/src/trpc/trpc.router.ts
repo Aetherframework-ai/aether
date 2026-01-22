@@ -16,10 +16,9 @@ export class TrpcRouter implements OnModuleInit {
 	}
 
 	async onModuleInit() {
-		// Bind router and start Aether worker
+		// Bind router (but don't start worker yet - let main.ts control that)
 		this.trpcService.aether.bindRouter(this._appRouter);
-		await this.trpcService.aether.serve();
-		console.log("[TrpcRouter] Aether worker started");
+		console.log("[TrpcRouter] Router bound to Aether");
 	}
 
 	private createRouter() {
