@@ -11,6 +11,7 @@ export class TrpcService implements OnModuleDestroy {
 			serverUrl: process.env.AETHER_SERVER_URL || "http://localhost:7233",
 			serviceName: "nestjs-demo-service",
 			group: "default",
+			fallbackOnError: (process.env.AETHER_FALLBACK as any) || "warn",
 		});
 
 		this.t = t;
