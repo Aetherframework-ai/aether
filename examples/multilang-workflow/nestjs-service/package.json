@@ -9,6 +9,8 @@
   "dependencies": {
     "@aetherframework.ai/nestjs": "^0.1.4",
     "@aetherframework.ai/sdk": "^0.1.4",
+    "@grpc/grpc-js": "^1.14.3",
+    "@grpc/proto-loader": "^0.8.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",

@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
 @Injectable()
-export class AetherDemoService {
+export class DemoService {
   syncStep(input: { message: string }) {
     console.log(`[NestJS] Sync step: ${input.message}`);
     return {

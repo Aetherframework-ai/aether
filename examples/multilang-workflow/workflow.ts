@@ -21,11 +21,11 @@ const multilangDemo = client.workflow(
   async (ctx, input: { message: string }) => {
     const results: any[] = [];
 
-    // Step 1: NestJS Sync
-    const r1 = await ctx.step("nestjs-sync", async () => {
+    // Step 1: NestJS Sync Step
+    // Note: NestJS service registers this as "nestjs-sync-step" via aetherStep()
+    // Currently calling via tRPC HTTP endpoint
+    const r1 = await ctx.step("nestjs-sync-step", async () => {
       console.log("→ Calling NestJS sync step...");
-      // In real Aether, this would use ctx.call("nestjs-demo::syncStep", ...)
-      // For demo, we call the HTTP endpoint directly
       return await callService(`${NESTJS_URL}/trpc/demo.sync`, {
         message: input.message,
       });
@@ -41,8 +41,9 @@ const multilangDemo = client.workflow(
     });
     results.push(r2);
 
-    // Step 3: NestJS Async
-    const r3 = await ctx.step("nestjs-async", async () => {
+    // Step 3: NestJS Async Step
+    // Note: NestJS service registers this as "nestjs-async-step" via aetherActivity()
+    const r3 = await ctx.step("nestjs-async-step", async () => {
       console.log("→ Calling NestJS async step...");
       return await callService(`${NESTJS_URL}/trpc/demo.async`, {
         message: input.message,

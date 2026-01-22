@@ -29,6 +29,8 @@
 		"@nestjs/platform-express": "^10.0.0",
 		"@nestjs/config": "^3.0.0",
 		"@aetherframework.ai/sdk": "file:../typescript",
+		"@grpc/grpc-js": "^1.14.3",
+		"@grpc/proto-loader": "^0.8.0",
 		"reflect-metadata": "^0.1.13",
 		"rxjs": "^7.8.0"
 	},
