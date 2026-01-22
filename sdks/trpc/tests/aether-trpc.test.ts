@@ -106,3 +106,103 @@ describe('StepMeta types', () => {
     expect(typeof AETHER_STEP_META).toBe('symbol');
   });
 });
+
+import { createProcedureBuilderProxy } from '../src/procedure-builder-proxy';
+
+describe('createProcedureBuilderProxy', () => {
+  it('should add mutationStep method to procedure builder', () => {
+    const mockProcedureBuilder = {
+      input: jest.fn().mockReturnThis(),
+      mutation: jest.fn().mockReturnValue({ _def: {} }),
+      _def: { inputs: [] },
+    };
+
+    const proxy = createProcedureBuilderProxy(mockProcedureBuilder as any);
+    expect(typeof proxy.mutationStep).toBe('function');
+  });
+
+  it('should add queryStep method to procedure builder', () => {
+    const mockProcedureBuilder = {
+      input: jest.fn().mockReturnThis(),
+      query: jest.fn().mockReturnValue({ _def: {} }),
+      _def: { inputs: [] },
+    };
+
+    const proxy = createProcedureBuilderProxy(mockProcedureBuilder as any);
+    expect(typeof proxy.queryStep).toBe('function');
+  });
+
+  it('mutationStep should attach step meta to procedure', () => {
+    const mockProcedure = { _def: {} };
+    const mockProcedureBuilder = {
+      input: jest.fn().mockReturnThis(),
+      mutation: jest.fn().mockReturnValue(mockProcedure),
+      _def: { inputs: [] },
+    };
+
+    const proxy = createProcedureBuilderProxy(mockProcedureBuilder as any);
+    const handler = async ({ input }: { input: any }) => input;
+    const result = proxy.mutationStep(handler);
+
+    expect((result as any)[AETHER_STEP_META]).toEqual({
+      handler,
+      type: 'mutation',
+      explicitName: undefined,
+    });
+  });
+
+  it('mutationStep should support explicit name', () => {
+    const mockProcedure = { _def: {} };
+    const mockProcedureBuilder = {
+      input: jest.fn().mockReturnThis(),
+      mutation: jest.fn().mockReturnValue(mockProcedure),
+      _def: { inputs: [] },
+    };
+
+    const proxy = createProcedureBuilderProxy(mockProcedureBuilder as any);
+    const handler = async ({ input }: { input: any }) => input;
+    const result = proxy.mutationStep('custom-name', handler);
+
+    expect((result as any)[AETHER_STEP_META]).toEqual({
+      handler,
+      type: 'mutation',
+      explicitName: 'custom-name',
+    });
+  });
+
+  it('should preserve mutationStep method after .input() chaining', () => {
+    const mockProcedure = { _def: {} };
+    const chainedBuilder = {
+      mutation: jest.fn().mockReturnValue(mockProcedure),
+      _def: { inputs: [] },
+    };
+    const mockProcedureBuilder = {
+      input: jest.fn().mockReturnValue(chainedBuilder),
+      mutation: jest.fn().mockReturnValue(mockProcedure),
+      _def: { inputs: [] },
+    };
+
+    const proxy = createProcedureBuilderProxy(mockProcedureBuilder as any);
+    const chained = proxy.input({});
+    expect(typeof chained.mutationStep).toBe('function');
+  });
+
+  it('queryStep should attach step meta to procedure', () => {
+    const mockProcedure = { _def: {} };
+    const mockProcedureBuilder = {
+      input: jest.fn().mockReturnThis(),
+      query: jest.fn().mockReturnValue(mockProcedure),
+      _def: { inputs: [] },
+    };
+
+    const proxy = createProcedureBuilderProxy(mockProcedureBuilder as any);
+    const handler = async ({ input }: { input: any }) => input;
+    const result = proxy.queryStep(handler);
+
+    expect((result as any)[AETHER_STEP_META]).toEqual({
+      handler,
+      type: 'query',
+      explicitName: undefined,
+    });
+  });
+});
