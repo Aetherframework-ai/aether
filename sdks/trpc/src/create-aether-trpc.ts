@@ -181,9 +181,16 @@ export function createAetherTrpc(config: AetherTrpcConfig): {
       return;
     }
 
+    // Inject worker context
+    const ctx = {
+      __aetherTask: true,
+      __workflowId: task.workflowId,
+      __taskId: task.taskId,
+    };
+
     try {
       await client.reportStepStarted(task.workflowId, task.stepName, task.input);
-      const result = await step.handler({ input: task.input });
+      const result = await step.handler({ input: task.input, ctx });
       await client.reportStepCompleted(task.workflowId, task.stepName, result);
       await client.completeStep(task.taskId, result);
     } catch (error: any) {
