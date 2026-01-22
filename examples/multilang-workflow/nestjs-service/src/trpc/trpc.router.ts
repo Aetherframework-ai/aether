@@ -1,25 +1,29 @@
-import { Injectable } from "@nestjs/common";
-import { initTRPC } from "@trpc/server";
+import { Injectable, OnModuleInit } from "@nestjs/common";
 import { TrpcService } from "./trpc.service";
-import { DemoService } from "../demo/demo.service";
 import { z } from "zod";
-
-const PYTHON_URL = "http://localhost:3002";
+import type { AnyRouter } from "@trpc/server";
 
 @Injectable()
-export class TrpcRouter {
-	private readonly _appRouter: ReturnType<typeof this.createRouter>;
+export class TrpcRouter implements OnModuleInit {
+	private readonly _appRouter: AnyRouter;
 
 	constructor(private readonly trpcService: TrpcService) {
 		this._appRouter = this.createRouter();
 	}
 
-	get appRouter() {
+	get appRouter(): AnyRouter {
 		return this._appRouter;
 	}
 
+	async onModuleInit() {
+		// Bind router and start Aether worker
+		this.trpcService.aether.bindRouter(this._appRouter);
+		await this.trpcService.aether.serve();
+		console.log("[TrpcRouter] Aether worker started");
+	}
+
 	private createRouter() {
-		const t = initTRPC.create();
+		const { t } = this.trpcService;
 
 		return t.router({
 			health: t.procedure.query(() => ({
@@ -29,7 +33,7 @@ export class TrpcRouter {
 			})),
 
 			demo: t.router({
-				// tRPC endpoint - sync step
+				// mutationStep - auto-inferred name: 'demo.sync'
 				sync: t.procedure
 					.input(
 						z.object({
@@ -37,11 +41,16 @@ export class TrpcRouter {
 							callPython: z.boolean().optional().default(false),
 						}),
 					)
-					.mutation(async ({ input }) => {
-						console.log("sync step", input);
+					.mutationStep(async ({ input }) => {
+						console.log("[demo.sync] Processing:", input);
+						return {
+							success: true,
+							message: input.message,
+							timestamp: new Date().toISOString(),
+						};
 					}),
 
-				// tRPC endpoint - async step
+				// mutationStep - auto-inferred name: 'demo.async'
 				async: t.procedure
 					.input(
 						z.object({
@@ -49,8 +58,13 @@ export class TrpcRouter {
 							callPython: z.boolean().optional().default(false),
 						}),
 					)
-					.mutation(async ({ input }) => {
-						console.log("async step", input);
+					.mutationStep(async ({ input }) => {
+						console.log("[demo.async] Processing:", input);
+						return {
+							success: true,
+							message: input.message,
+							timestamp: new Date().toISOString(),
+						};
 					}),
 			}),
 		});

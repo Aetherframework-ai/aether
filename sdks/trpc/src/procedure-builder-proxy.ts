@@ -5,19 +5,35 @@ import { AETHER_STEP_META, StepMeta, StepHandler } from './types';
  * Type definitions for the step methods added by the proxy
  */
 type MutationStepFn = {
-  <TOutput>(handler: StepHandler<any>): any;
-  <TOutput>(name: string, handler: StepHandler<any>): any;
+  (handler: StepHandler<any>): any;
+  (name: string, handler: StepHandler<any>): any;
 };
 
 type QueryStepFn = {
-  <TOutput>(handler: StepHandler<any>): any;
-  <TOutput>(name: string, handler: StepHandler<any>): any;
+  (handler: StepHandler<any>): any;
+  (name: string, handler: StepHandler<any>): any;
+};
+
+// Methods on ProcedureBuilder that return a new ProcedureBuilder
+type ChainableMethods = 'input' | 'output' | 'use' | 'meta' | 'unstable_concat';
+
+/**
+ * Helper type to wrap chainable methods to return ExtendedProcedureBuilder
+ */
+type WrapChainableMethods<T> = {
+  [K in keyof T]: K extends ChainableMethods
+    ? T[K] extends (...args: infer A) => infer R
+      ? (...args: A) => ExtendedProcedureBuilder<R>
+      : T[K]
+    : T[K];
 };
 
 /**
- * Extended procedure builder type with mutationStep and queryStep methods
+ * Extended procedure builder type with mutationStep and queryStep methods.
+ * Only chainable methods (input, output, use, meta) are wrapped to preserve
+ * the extended methods through the chain.
  */
-export type ExtendedProcedureBuilder<T> = T & {
+export type ExtendedProcedureBuilder<T> = WrapChainableMethods<T> & {
   mutationStep: MutationStepFn;
   queryStep: QueryStepFn;
 };

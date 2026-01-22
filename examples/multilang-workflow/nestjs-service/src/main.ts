@@ -19,7 +19,7 @@ async function bootstrap() {
   // Start Aether worker if enabled
   if (process.env.AETHER_WORKER_ENABLED === "true") {
     const trpcService = app.get(TrpcService);
-    await trpcService.serve();
+    await trpcService.aether.serve();
   }
 }
 

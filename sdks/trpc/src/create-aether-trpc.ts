@@ -2,7 +2,7 @@
 import { initTRPC } from '@trpc/server';
 import type { AnyRouter } from '@trpc/server';
 import { Client } from '@aetherframework.ai/sdk';
-import { createProcedureBuilderProxy } from './procedure-builder-proxy';
+import { createProcedureBuilderProxy, ExtendedProcedureBuilder } from './procedure-builder-proxy';
 import {
   AetherTrpcConfig,
   StepRegistry,
@@ -10,6 +10,17 @@ import {
   StepMeta,
   RegisteredStepWithPath,
 } from './types';
+
+type OriginalTRPC = ReturnType<typeof initTRPC.create>;
+
+/**
+ * Extended tRPC instance with Aether step support.
+ * The `procedure` property returns an ExtendedProcedureBuilder that includes
+ * `mutationStep` and `queryStep` methods.
+ */
+export type AetherTRPC = Omit<OriginalTRPC, 'procedure'> & {
+  procedure: ExtendedProcedureBuilder<OriginalTRPC['procedure']>;
+};
 
 interface AetherTask {
   taskId: string;
@@ -27,7 +38,7 @@ export interface AetherInstance {
 }
 
 export function createAetherTrpc(config: AetherTrpcConfig): {
-  t: ReturnType<typeof initTRPC.create>;
+  t: AetherTRPC;
   aether: AetherInstance;
 } {
   const originalT = initTRPC.create();
@@ -40,7 +51,7 @@ export function createAetherTrpc(config: AetherTrpcConfig): {
       }
       return Reflect.get(target, prop, receiver);
     },
-  }) as typeof originalT;
+  }) as unknown as AetherTRPC;
 
   // Create aether instance
   const client = new Client(config.serverUrl);

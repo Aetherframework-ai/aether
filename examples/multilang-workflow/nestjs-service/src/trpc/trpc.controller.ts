@@ -1,14 +1,14 @@
 import { All, Controller, Req, Res } from "@nestjs/common";
 import { TrpcRouter } from "./trpc.router";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import type { Request, Response } from "express";
+import type { Request as ExpressRequest, Response } from "express";
 
 @Controller("trpc")
 export class TrpcController {
   constructor(private readonly trpcRouter: TrpcRouter) {}
 
   @All("*")
-  async handle(@Req() req: Request, @Res() res: Response) {
+  async handle(@Req() req: ExpressRequest, @Res() res: Response) {
     const fetchReq = new Request(`http://localhost${req.url}`, {
       method: req.method,
       headers: req.headers as HeadersInit,
