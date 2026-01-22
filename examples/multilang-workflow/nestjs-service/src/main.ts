@@ -1,5 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
+import { TrpcService } from "./trpc/trpc.service";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -14,6 +15,12 @@ async function bootstrap() {
 
   console.log(`[NestJS] Demo service running on http://localhost:${port}`);
   console.log(`[NestJS] tRPC endpoint: http://localhost:${port}/trpc`);
+
+  // Start Aether worker if enabled
+  if (process.env.AETHER_WORKER_ENABLED === "true") {
+    const trpcService = app.get(TrpcService);
+    await trpcService.serve();
+  }
 }
 
 bootstrap();

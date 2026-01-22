@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { initTRPC } from "@trpc/server";
 import { TrpcService } from "./trpc.service";
 import { DemoService } from "../demo/demo.service";
 import { z } from "zod";
@@ -11,8 +12,6 @@ export class TrpcRouter {
     private readonly trpcService: TrpcService,
     private readonly demoService: DemoService
   ) {
-    // Initialize router in constructor to ensure Aether steps are registered
-    // before AetherWorkerService collects them
     this._appRouter = this.createRouter();
   }
 
@@ -21,9 +20,9 @@ export class TrpcRouter {
   }
 
   private createRouter() {
-    const t = this.trpcService;
+    const t = initTRPC.create();
+
     return t.router({
-      // Standard tRPC endpoint
       health: t.procedure.query(() => ({
         status: "ok",
         service: "nestjs-demo",
@@ -32,16 +31,26 @@ export class TrpcRouter {
 
       demo: t.router({
         // tRPC endpoint that is also an Aether Step
-        sync: t
-          .aetherStep("nestjs-sync-step")
+        sync: t.procedure
           .input(z.object({ message: z.string() }))
-          .mutation(({ input }) => this.demoService.syncStep(input)),
+          .mutation(
+            this.trpcService.aetherStep("nestjs-sync-step")(
+              async ({ input }: { input: { message: string } }) => {
+                return this.demoService.syncStep(input);
+              }
+            )
+          ),
 
-        // tRPC endpoint that is also an Aether Activity
-        async: t
-          .aetherActivity("nestjs-async-step", { timeout: 5000 })
+        // tRPC endpoint that is also an Aether Step (for async)
+        async: t.procedure
           .input(z.object({ message: z.string() }))
-          .mutation(({ input }) => this.demoService.asyncStep(input)),
+          .mutation(
+            this.trpcService.aetherStep("nestjs-async-step")(
+              async ({ input }: { input: { message: string } }) => {
+                return this.demoService.asyncStep(input);
+              }
+            )
+          ),
       }),
     });
   }
