@@ -1,6 +1,24 @@
 import { AetherTrpc, createAetherTrpc } from '../src/aether-trpc';
 import { Client } from '@aetherframework.ai/sdk';
 
+// Module exports tests
+describe('module exports', () => {
+  it('should export createAetherTrpc from index', async () => {
+    const module = await import('../src/index');
+    expect(module.createAetherTrpc).toBeDefined();
+  });
+
+  it('should export AETHER_STEP_META from index', async () => {
+    const module = await import('../src/index');
+    expect(module.AETHER_STEP_META).toBeDefined();
+  });
+
+  it('should NOT export old AetherTrpc class', async () => {
+    const module = await import('../src/index');
+    expect((module as any).AetherTrpc).toBeUndefined();
+  });
+});
+
 // Mock Client
 jest.mock('@aetherframework.ai/sdk', () => ({
   Client: jest.fn().mockImplementation(() => ({
