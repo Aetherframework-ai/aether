@@ -98,3 +98,11 @@ describe('createAetherTrpc', () => {
     expect(steps.size).toBe(0);
   });
 });
+
+import { AETHER_STEP_META, StepMeta } from '../src/types';
+
+describe('StepMeta types', () => {
+  it('should have AETHER_STEP_META symbol exported', () => {
+    expect(typeof AETHER_STEP_META).toBe('symbol');
+  });
+});

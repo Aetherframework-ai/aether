@@ -17,3 +17,15 @@ export interface RegisteredStep {
 }
 
 export type StepRegistry = Map<string, RegisteredStep>;
+
+export const AETHER_STEP_META = Symbol('aether-step-meta');
+
+export interface StepMeta {
+  explicitName?: string;
+  handler: StepHandler;
+  type: 'mutation' | 'query';
+}
+
+export interface RegisteredStepWithPath extends RegisteredStep {
+  path: string;
+}
