@@ -5,10 +5,12 @@ export interface AetherTrpcConfig {
   serviceName: string;
   group?: string;
   workerId?: string;
+  /** Fallback behavior when Aether server is unavailable */
+  fallbackOnError?: 'error' | 'local' | 'warn';
 }
 
 export interface StepHandler<T = any> {
-  (opts: { input: T }): Promise<any> | any;
+  (opts: { input: T; ctx?: any }): Promise<any> | any;
 }
 
 export interface RegisteredStep {
