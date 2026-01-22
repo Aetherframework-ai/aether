@@ -1,9 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
 
-@tailwind base;
+@import "tailwindcss";
 
 @plugin "tailwindcss-animate";
-@import "tailwindcss";
 
 /* React Flow 样式 */
 @import "@xyflow/react/dist/style.css";
