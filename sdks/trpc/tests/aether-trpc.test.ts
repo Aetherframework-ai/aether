@@ -207,6 +207,204 @@ describe('createAetherTrpc (new API)', () => {
   });
 });
 
+describe('aether.bindRouter', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should register steps from router with auto-inferred names', () => {
+    const { t, aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    const handler = async ({ input }: { input: any }) => input;
+    const procedure = (t.procedure as any).mutationStep(handler);
+
+    // Create a router with the procedure
+    const router = {
+      _def: {
+        procedures: {
+          processOrder: procedure,
+        },
+      },
+    };
+
+    aether.bindRouter(router as any);
+
+    const steps = aether.getSteps();
+    expect(steps.has('processOrder')).toBe(true);
+    expect(steps.get('processOrder')?.handler).toBe(handler);
+  });
+
+  it('should use explicit name when provided', () => {
+    const { t, aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    const handler = async ({ input }: { input: any }) => input;
+    const procedure = (t.procedure as any).mutationStep('custom-step-name', handler);
+
+    const router = {
+      _def: {
+        procedures: {
+          processOrder: procedure,
+        },
+      },
+    };
+
+    aether.bindRouter(router as any);
+
+    const steps = aether.getSteps();
+    expect(steps.has('custom-step-name')).toBe(true);
+    expect(steps.has('processOrder')).toBe(false);
+  });
+
+  it('should throw on duplicate step names', () => {
+    const { t, aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    const handler1 = async ({ input }: { input: any }) => input;
+    const handler2 = async ({ input }: { input: any }) => input;
+    const procedure1 = (t.procedure as any).mutationStep('same-name', handler1);
+    const procedure2 = (t.procedure as any).mutationStep('same-name', handler2);
+
+    const router = {
+      _def: {
+        procedures: {
+          order1: procedure1,
+          order2: procedure2,
+        },
+      },
+    };
+
+    expect(() => aether.bindRouter(router as any)).toThrow(/Duplicate step name/);
+  });
+
+  it('should support multiple bindRouter calls', () => {
+    const { t, aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    const handler1 = async ({ input }: { input: any }) => input;
+    const handler2 = async ({ input }: { input: any }) => input;
+
+    const router1 = {
+      _def: {
+        procedures: {
+          step1: (t.procedure as any).mutationStep(handler1),
+        },
+      },
+    };
+
+    const router2 = {
+      _def: {
+        procedures: {
+          step2: (t.procedure as any).mutationStep(handler2),
+        },
+      },
+    };
+
+    aether.bindRouter(router1 as any);
+    aether.bindRouter(router2 as any);
+
+    const steps = aether.getSteps();
+    expect(steps.size).toBe(2);
+    expect(steps.has('step1')).toBe(true);
+    expect(steps.has('step2')).toBe(true);
+  });
+
+  it('should not register procedures without step methods', () => {
+    const { t, aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    // Create a regular procedure without step metadata (simulating t.procedure.query())
+    const regularProcedure = { _def: {} };
+
+    const router = {
+      _def: {
+        procedures: {
+          health: regularProcedure,
+        },
+      },
+    };
+
+    aether.bindRouter(router as any);
+
+    const steps = aether.getSteps();
+    expect(steps.size).toBe(0);
+  });
+
+  it('should handle nested routers with prefix', () => {
+    const { t, aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    const handler = async ({ input }: { input: any }) => input;
+    const procedure = (t.procedure as any).mutationStep(handler);
+
+    const nestedRouter = {
+      _def: {
+        procedures: {
+          create: procedure,
+        },
+      },
+    };
+
+    const mainRouter = {
+      _def: {
+        procedures: {
+          orders: nestedRouter,
+        },
+      },
+    };
+
+    aether.bindRouter(mainRouter as any);
+
+    const steps = aether.getSteps();
+    expect(steps.has('orders.create')).toBe(true);
+  });
+
+  it('should use explicit name even in nested routers', () => {
+    const { t, aether } = createAetherTrpcNew({
+      serverUrl: 'localhost:7233',
+      serviceName: 'test-service',
+    });
+
+    const handler = async ({ input }: { input: any }) => input;
+    const procedure = (t.procedure as any).mutationStep('explicit-create', handler);
+
+    const nestedRouter = {
+      _def: {
+        procedures: {
+          create: procedure,
+        },
+      },
+    };
+
+    const mainRouter = {
+      _def: {
+        procedures: {
+          orders: nestedRouter,
+        },
+      },
+    };
+
+    aether.bindRouter(mainRouter as any);
+
+    const steps = aether.getSteps();
+    expect(steps.has('explicit-create')).toBe(true);
+    expect(steps.has('orders.create')).toBe(false);
+  });
+});
+
 describe('createProcedureBuilderProxy', () => {
   it('should add mutationStep method to procedure builder', () => {
     const mockProcedureBuilder = {
