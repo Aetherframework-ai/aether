@@ -318,6 +318,7 @@ export class AetherClient {
   }
 }
 
+export { Client } from './client';
 export { Workflow } from './workflow';
 
 export function aether(config: AetherConfig): AetherClient {
