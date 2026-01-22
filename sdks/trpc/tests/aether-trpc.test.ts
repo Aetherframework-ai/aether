@@ -452,3 +452,53 @@ describe('isConnectionError', () => {
     expect(isConnectionError({ message: 'Some other error' })).toBe(false);
   });
 });
+
+describe('handleFallback', () => {
+  it('should throw SERVICE_UNAVAILABLE when fallback is "error"', async () => {
+    const { handleFallback } = await import('../src/procedure-builder-proxy');
+    const error = { code: 14, message: 'unavailable' };
+    const handler = jest.fn();
+    const config = { serverUrl: '', serviceName: '', fallbackOnError: 'error' as const };
+
+    await expect(handleFallback(error, handler, { input: {}, ctx: {} }, config))
+      .rejects.toThrow('Aether server unavailable');
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('should execute handler locally when fallback is "local"', async () => {
+    const { handleFallback } = await import('../src/procedure-builder-proxy');
+    const error = { code: 14, message: 'unavailable' };
+    const handler = jest.fn().mockResolvedValue({ success: true });
+    const config = { serverUrl: '', serviceName: '', fallbackOnError: 'local' as const };
+
+    const result = await handleFallback(error, handler, { input: { test: 1 }, ctx: {} }, config);
+    expect(handler).toHaveBeenCalledWith({ input: { test: 1 }, ctx: {} });
+    expect(result).toEqual({ success: true });
+  });
+
+  it('should execute handler and warn when fallback is "warn"', async () => {
+    const { handleFallback } = await import('../src/procedure-builder-proxy');
+    const error = { code: 14, message: 'unavailable' };
+    const handler = jest.fn().mockResolvedValue({ success: true });
+    const config = { serverUrl: '', serviceName: '', fallbackOnError: 'warn' as const };
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    const result = await handleFallback(error, handler, { input: {}, ctx: {} }, config);
+    expect(warnSpy).toHaveBeenCalled();
+    expect(handler).toHaveBeenCalled();
+    expect(result).toEqual({ success: true });
+
+    warnSpy.mockRestore();
+  });
+
+  it('should rethrow non-connection errors regardless of config', async () => {
+    const { handleFallback } = await import('../src/procedure-builder-proxy');
+    const error = new Error('Business logic error');
+    const handler = jest.fn();
+    const config = { serverUrl: '', serviceName: '', fallbackOnError: 'local' as const };
+
+    await expect(handleFallback(error, handler, { input: {}, ctx: {} }, config))
+      .rejects.toThrow('Business logic error');
+    expect(handler).not.toHaveBeenCalled();
+  });
+});

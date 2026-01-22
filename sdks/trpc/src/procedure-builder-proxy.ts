@@ -1,5 +1,5 @@
 // sdks/trpc/src/procedure-builder-proxy.ts
-import { AETHER_STEP_META, StepMeta, StepHandler } from './types';
+import { AETHER_STEP_META, StepMeta, StepHandler, AetherTrpcConfig } from './types';
 
 /**
  * Check if an error is a connection error (Aether server unavailable)
@@ -8,6 +8,39 @@ export function isConnectionError(error: any): boolean {
   return error?.code === 14  // gRPC UNAVAILABLE
     || error?.message?.includes('ECONNREFUSED')
     || error?.message?.includes('ETIMEDOUT');
+}
+
+/**
+ * Handle errors during workflow creation with configurable fallback
+ */
+export async function handleFallback(
+  error: any,
+  handler: StepHandler,
+  opts: { input: any; ctx: any },
+  config: AetherTrpcConfig
+): Promise<any> {
+  // Only fallback for connection errors
+  if (!isConnectionError(error)) {
+    throw error;
+  }
+
+  const fallback = config.fallbackOnError ?? 'error';
+
+  if (fallback === 'error') {
+    const err = new Error(`Aether server unavailable: ${error.message}`);
+    (err as any).code = 'SERVICE_UNAVAILABLE';
+    throw err;
+  }
+
+  if (fallback === 'warn') {
+    console.warn(
+      `[AetherTrpc] Aether unavailable, falling back to local execution:`,
+      error.message
+    );
+  }
+
+  // 'local' or 'warn' mode: execute handler locally
+  return handler(opts);
 }
 
 /**
