@@ -3,6 +3,7 @@ export interface AetherTrpcConfig {
   serviceName: string;
   group?: string;
   workerId?: string;
+  pollingInterval?: number;
 }
 
 export interface StepHandler<TInput = unknown, TOutput = unknown> {
