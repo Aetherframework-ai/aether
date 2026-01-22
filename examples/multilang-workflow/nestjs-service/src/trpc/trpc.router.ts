@@ -4,56 +4,57 @@ import { TrpcService } from "./trpc.service";
 import { DemoService } from "../demo/demo.service";
 import { z } from "zod";
 
+const PYTHON_URL = "http://localhost:3002";
+
 @Injectable()
 export class TrpcRouter {
-  private readonly _appRouter: ReturnType<typeof this.createRouter>;
+	private readonly _appRouter: ReturnType<typeof this.createRouter>;
 
-  constructor(
-    private readonly trpcService: TrpcService,
-    private readonly demoService: DemoService
-  ) {
-    this._appRouter = this.createRouter();
-  }
+	constructor(private readonly trpcService: TrpcService) {
+		this._appRouter = this.createRouter();
+	}
 
-  get appRouter() {
-    return this._appRouter;
-  }
+	get appRouter() {
+		return this._appRouter;
+	}
 
-  private createRouter() {
-    const t = initTRPC.create();
+	private createRouter() {
+		const t = initTRPC.create();
 
-    return t.router({
-      health: t.procedure.query(() => ({
-        status: "ok",
-        service: "nestjs-demo",
-        timestamp: new Date().toISOString(),
-      })),
+		return t.router({
+			health: t.procedure.query(() => ({
+				status: "ok",
+				service: "nestjs-demo",
+				timestamp: new Date().toISOString(),
+			})),
 
-      demo: t.router({
-        // tRPC endpoint that is also an Aether Step
-        sync: t.procedure
-          .input(z.object({ message: z.string() }))
-          .mutation(
-            this.trpcService.aetherStep("nestjs-sync-step")(
-              async ({ input }: { input: { message: string } }) => {
-                return this.demoService.syncStep(input);
-              }
-            )
-          ),
+			demo: t.router({
+				// tRPC endpoint - sync step
+				sync: t.procedure
+					.input(
+						z.object({
+							message: z.string(),
+							callPython: z.boolean().optional().default(false),
+						}),
+					)
+					.mutation(async ({ input }) => {
+						console.log("sync step", input);
+					}),
 
-        // tRPC endpoint that is also an Aether Step (for async)
-        async: t.procedure
-          .input(z.object({ message: z.string() }))
-          .mutation(
-            this.trpcService.aetherStep("nestjs-async-step")(
-              async ({ input }: { input: { message: string } }) => {
-                return this.demoService.asyncStep(input);
-              }
-            )
-          ),
-      }),
-    });
-  }
+				// tRPC endpoint - async step
+				async: t.procedure
+					.input(
+						z.object({
+							message: z.string(),
+							callPython: z.boolean().optional().default(false),
+						}),
+					)
+					.mutation(async ({ input }) => {
+						console.log("async step", input);
+					}),
+			}),
+		});
+	}
 }
 
 export type AppRouter = TrpcRouter["appRouter"];

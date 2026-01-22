@@ -8,7 +8,6 @@
 	},
 	"dependencies": {
 		"@aetherframework.ai/nestjs": "file:../../../sdks/nestjs",
-		"@aetherframework.ai/sdk": "file:../../../sdks/typescript",
 		"@aetherframework.ai/trpc": "file:../../../sdks/trpc",
 		"@grpc/grpc-js": "^1.14.3",
 		"@grpc/proto-loader": "^0.8.0",
@@ -25,9 +24,9 @@
 		"@nestjs/schematics": "^11.0.0",
 		"@swc/cli": "^0.6.0",
 		"@swc/core": "^1.10.7",
+		"@types/bun": "latest",
 		"@types/node": "^22.0.0",
-		"typescript": "^5.7.3",
-		"@types/bun": "latest"
+		"typescript": "^5.7.3"
 	},
 	"module": "index.ts",
 	"type": "module",

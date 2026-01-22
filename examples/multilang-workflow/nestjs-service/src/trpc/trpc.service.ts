@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
-import { createAetherTrpc, AetherTrpc } from "@aetherframework.ai/trpc";
+import { createAetherTrpc, AetherTrpc, StepHandler } from "@aetherframework.ai/trpc";
 
 @Injectable()
 export class TrpcService implements OnModuleDestroy {
@@ -13,23 +13,17 @@ export class TrpcService implements OnModuleDestroy {
     });
   }
 
-  get procedure() {
-    return this.aether;
-  }
-
-  /**
-   * Get the AetherTrpc instance for serving
-   */
-  getAetherTrpc(): AetherTrpc {
-    return this.aether;
-  }
-
   /**
    * Create an Aether Step procedure - tRPC endpoint that is also registered as an Aether step
    * @param name - The step name for Aether registration
+   * @param handler - The step handler function
    */
-  aetherStep(name: string) {
-    return this.aether.step(name);
+  aetherStep<T = any>(name: string, handler: StepHandler<T>): StepHandler<T> {
+    return this.aether.step(name, handler);
+  }
+
+  getAetherTrpc(): AetherTrpc {
+    return this.aether;
   }
 
   async serve(): Promise<void> {
