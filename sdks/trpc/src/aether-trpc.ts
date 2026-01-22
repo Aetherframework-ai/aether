@@ -164,9 +164,10 @@ export class AetherTrpc {
   private steps: StepRegistry = new Map();
   private workerId: string;
   private config: AetherTrpcConfig;
+  private abortController?: AbortController;
+  private pollingPromise?: Promise<void>;
   private isRunning = false;
   private pollingInterval: number = 200;
-  private pollingLoop: Promise<void> | null = null;
 
   constructor(config: AetherTrpcConfig) {
     this.config = config;
@@ -184,7 +185,8 @@ export class AetherTrpc {
   }
 
   async serve(): Promise<void> {
-    if (this.isRunning) {
+    if (this.abortController) {
+      console.warn('[AetherTrpc] Worker is already running');
       return;
     }
 
@@ -207,30 +209,30 @@ export class AetherTrpc {
       throw new Error(`Failed to register worker: ${error.message}`);
     }
 
+    this.abortController = new AbortController();
     this.isRunning = true;
-    this.startPolling();
+    this.pollingPromise = this.startPolling(this.abortController.signal);
   }
 
-  private startPolling(): void {
-    const runLoop = async () => {
-      const maxTasks = 10;
+  private async startPolling(signal: AbortSignal): Promise<void> {
+    const maxTasks = 10;
 
-      while (this.isRunning && this.client) {
-        try {
-          const tasks = await this.client.pollTasksOnce(this.workerId, maxTasks);
+    while (!signal.aborted && this.client) {
+      try {
+        const tasks = await this.client.pollTasksOnce(this.workerId, maxTasks);
 
-          for (const task of tasks) {
-            await this.handleTask(task);
-          }
-
-          await new Promise((resolve) => setTimeout(resolve, this.pollingInterval));
-        } catch (error: any) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+        for (const task of tasks) {
+          await this.handleTask(task);
         }
-      }
-    };
 
-    this.pollingLoop = runLoop();
+        await new Promise((resolve) => setTimeout(resolve, this.pollingInterval));
+      } catch (error: any) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
   }
 
   private async handleTask(task: any): Promise<void> {
@@ -271,6 +273,9 @@ export class AetherTrpc {
   }
 
   stop(): void {
+    this.abortController?.abort();
+    this.abortController = undefined;
+    this.pollingPromise = undefined;
     this.isRunning = false;
   }
 
