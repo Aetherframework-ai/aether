@@ -13,7 +13,6 @@ pub enum EventType {
     WorkflowCancelled,
 }
 
-
 /// WebSocket 事件负载
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StepStartedPayload {
@@ -127,7 +126,10 @@ impl EventBroadcaster {
     }
 
     /// 广播事件给所有订阅者
-    pub fn broadcast(&self, event: WorkflowEvent) -> Result<usize, broadcast::error::SendError<WorkflowEvent>> {
+    pub fn broadcast(
+        &self,
+        event: WorkflowEvent,
+    ) -> Result<usize, broadcast::error::SendError<WorkflowEvent>> {
         self.tx.send(event)
     }
 

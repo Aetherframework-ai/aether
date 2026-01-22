@@ -27,5 +27,5 @@ pub use kernel::AetherKernel;
 pub use service_registry::{ServiceInfo, ServiceRegistry};
 pub use state_machine::{Workflow, WorkflowState};
 pub use task::{ResourceType, RetryPolicy, ServiceResource, Task};
-pub use tracker::{StepExecutionStatus, StepExecution, WorkflowExecution, WorkflowTracker};
+pub use tracker::{StepExecution, StepExecutionStatus, WorkflowExecution, WorkflowTracker};
 pub use workflow::WorkflowExecutor;

@@ -26,7 +26,9 @@ impl Persistence for PersistenceBackend {
         match self {
             PersistenceBackend::L0Memory(store) => store.as_ref().save_workflow(workflow).await,
             PersistenceBackend::L1Snapshot(store) => store.as_ref().save_workflow(workflow).await,
-            PersistenceBackend::L2StateActionLog(store) => store.as_ref().save_workflow(workflow).await,
+            PersistenceBackend::L2StateActionLog(store) => {
+                store.as_ref().save_workflow(workflow).await
+            }
         }
     }
 
@@ -40,8 +42,12 @@ impl Persistence for PersistenceBackend {
 
     async fn list_workflows(&self, workflow_type: Option<&str>) -> anyhow::Result<Vec<Workflow>> {
         match self {
-            PersistenceBackend::L0Memory(store) => store.as_ref().list_workflows(workflow_type).await,
-            PersistenceBackend::L1Snapshot(store) => store.as_ref().list_workflows(workflow_type).await,
+            PersistenceBackend::L0Memory(store) => {
+                store.as_ref().list_workflows(workflow_type).await
+            }
+            PersistenceBackend::L1Snapshot(store) => {
+                store.as_ref().list_workflows(workflow_type).await
+            }
             PersistenceBackend::L2StateActionLog(store) => {
                 store.as_ref().list_workflows(workflow_type).await
             }
@@ -50,8 +56,12 @@ impl Persistence for PersistenceBackend {
 
     async fn update_workflow_state(&self, id: &str, state: WorkflowState) -> anyhow::Result<()> {
         match self {
-            PersistenceBackend::L0Memory(store) => store.as_ref().update_workflow_state(id, state).await,
-            PersistenceBackend::L1Snapshot(store) => store.as_ref().update_workflow_state(id, state).await,
+            PersistenceBackend::L0Memory(store) => {
+                store.as_ref().update_workflow_state(id, state).await
+            }
+            PersistenceBackend::L1Snapshot(store) => {
+                store.as_ref().update_workflow_state(id, state).await
+            }
             PersistenceBackend::L2StateActionLog(store) => {
                 store.as_ref().update_workflow_state(id, state).await
             }
@@ -66,13 +76,22 @@ impl Persistence for PersistenceBackend {
     ) -> anyhow::Result<()> {
         match self {
             PersistenceBackend::L0Memory(store) => {
-                store.as_ref().save_step_result(workflow_id, step_name, result).await
+                store
+                    .as_ref()
+                    .save_step_result(workflow_id, step_name, result)
+                    .await
             }
             PersistenceBackend::L1Snapshot(store) => {
-                store.as_ref().save_step_result(workflow_id, step_name, result).await
+                store
+                    .as_ref()
+                    .save_step_result(workflow_id, step_name, result)
+                    .await
             }
             PersistenceBackend::L2StateActionLog(store) => {
-                store.as_ref().save_step_result(workflow_id, step_name, result).await
+                store
+                    .as_ref()
+                    .save_step_result(workflow_id, step_name, result)
+                    .await
             }
         }
     }
@@ -205,7 +224,17 @@ async fn main() -> anyhow::Result<()> {
             dashboard,
             dashboard_port,
             persistence,
-        } => serve_command(db, grpc_port, http_port, dashboard, dashboard_port, persistence).await,
+        } => {
+            serve_command(
+                db,
+                grpc_port,
+                http_port,
+                dashboard,
+                dashboard_port,
+                persistence,
+            )
+            .await
+        }
         Commands::Init {
             name,
             output,
@@ -230,7 +259,10 @@ async fn serve_command(
     println!("Database: {:?}", db);
     println!("gRPC Port: {}", grpc_port);
     println!("HTTP Port: {}", http_port);
-    println!("Dashboard: {}", if dashboard { "enabled" } else { "disabled" });
+    println!(
+        "Dashboard: {}",
+        if dashboard { "enabled" } else { "disabled" }
+    );
     if dashboard {
         println!("Dashboard WS Port: {}", dashboard_port);
     }
@@ -293,34 +325,37 @@ async fn serve_command(
     println!("Press Ctrl+C to stop the server");
     println!();
 
-        // 启动 Dashboard WebSocket 服务器（如果启用）
-        if dashboard {
-            #[cfg(feature = "dashboard")]
-            {
-                let dashboard_addr = format!("0.0.0.0:{}", dashboard_port);
-                let tracker = scheduler.tracker.clone();
-                let broadcaster = scheduler.broadcaster.get_sender();
+    // 启动 Dashboard WebSocket 服务器（如果启用）
+    if dashboard {
+        #[cfg(feature = "dashboard")]
+        {
+            let dashboard_addr = format!("0.0.0.0:{}", dashboard_port);
+            let tracker = scheduler.tracker.clone();
+            let broadcaster = scheduler.broadcaster.get_sender();
 
-                tokio::spawn(async move {
-                    if let Err(e) = aetherframework_kernel::dashboard_server::start_dashboard_server(
-                        tracker,
-                        broadcaster,
-                        &dashboard_addr,
-                    )
-                    .await
-                    {
-                        eprintln!("Dashboard server error: {}", e);
-                    }
-                });
+            tokio::spawn(async move {
+                if let Err(e) = aetherframework_kernel::dashboard_server::start_dashboard_server(
+                    tracker,
+                    broadcaster,
+                    &dashboard_addr,
+                )
+                .await
+                {
+                    eprintln!("Dashboard server error: {}", e);
+                }
+            });
 
-                println!("🎨 Dashboard WebSocket server starting on 0.0.0.0:{}", dashboard_port);
-            }
-
-            #[cfg(not(feature = "dashboard"))]
-            {
-                println!("⚠️  Dashboard feature not enabled. Rebuild with --features dashboard");
-            }
+            println!(
+                "🎨 Dashboard WebSocket server starting on 0.0.0.0:{}",
+                dashboard_port
+            );
         }
+
+        #[cfg(not(feature = "dashboard"))]
+        {
+            println!("⚠️  Dashboard feature not enabled. Rebuild with --features dashboard");
+        }
+    }
 
     // 使用 aetherframework-kernel 的服务器启动函数
     server::start_server(scheduler, &addr).await?;

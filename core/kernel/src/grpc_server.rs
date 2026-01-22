@@ -276,12 +276,16 @@ where
                 .await;
 
             // 广播 step 开始事件
-            let _ = self.scheduler.broadcaster.broadcast_step_started(
-                &task.workflow_id,
-                "workflow", // TODO: 从 workflow 获取实际类型
-                &task.step_name,
-                task.input.clone(),
-            ).await;
+            let _ = self
+                .scheduler
+                .broadcaster
+                .broadcast_step_started(
+                    &task.workflow_id,
+                    "workflow", // TODO: 从 workflow 获取实际类型
+                    &task.step_name,
+                    task.input.clone(),
+                )
+                .await;
         }
 
         let (tx, rx) = mpsc::channel(100);
@@ -389,12 +393,7 @@ where
                 let _ = self
                     .scheduler
                     .broadcaster
-                    .broadcast_step_completed(
-                        workflow_id,
-                        "workflow",
-                        step_name,
-                        request.output,
-                    )
+                    .broadcast_step_completed(workflow_id, "workflow", step_name, request.output)
                     .await;
             }
             Ok(StepStatus::StepFailed) => {
@@ -408,7 +407,13 @@ where
                 let _ = self
                     .scheduler
                     .broadcaster
-                    .broadcast_step_failed(workflow_id, "workflow", step_name, request.error.clone(), 1)
+                    .broadcast_step_failed(
+                        workflow_id,
+                        "workflow",
+                        step_name,
+                        request.error.clone(),
+                        1,
+                    )
                     .await;
             }
             Err(_) => {

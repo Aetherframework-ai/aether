@@ -284,7 +284,11 @@ async fn get_workflow_history(state: &AppState, workflow_id: &str) -> ApiRespons
                     StepHistoryDto {
                         step_name: name.clone(),
                         status: step.status.to_string(),
-                        timestamp: step.started_at.as_ref().map(|t| t.seconds as u64).unwrap_or(0),
+                        timestamp: step
+                            .started_at
+                            .as_ref()
+                            .map(|t| t.seconds as u64)
+                            .unwrap_or(0),
                         duration_ms,
                     }
                 })
