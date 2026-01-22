@@ -1,0 +1,9 @@
+[project]
+name = "python-demo-service"
+version = "0.1.0"
+description = "Python demo service for multilang workflow example"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = []
