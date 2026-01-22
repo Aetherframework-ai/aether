@@ -1,5 +1,3 @@
-import type { Client } from '@aetherframework.ai/sdk';
-
 export interface AetherTrpcConfig {
   serverUrl: string;
   serviceName: string;
