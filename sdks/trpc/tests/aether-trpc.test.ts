@@ -502,3 +502,109 @@ describe('handleFallback', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 });
+
+describe('gateway mode', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should call startWorkflow when ctx.__aetherTask is not set', async () => {
+    const mockClient = {
+      startWorkflow: jest.fn().mockResolvedValue({ workflowId: 'wf-123' }),
+      awaitResult: jest.fn().mockResolvedValue({ result: { success: true } }),
+    };
+    const mockConfig = { serverUrl: '', serviceName: '', fallbackOnError: 'error' as const };
+
+    const { createProcedureBuilderProxy } = await import('../src/procedure-builder-proxy');
+
+    const mockProcedure = { _def: {} };
+    let capturedHandler: any;
+    const mockProcedureBuilder = {
+      mutation: jest.fn().mockImplementation((h) => {
+        capturedHandler = h;
+        return mockProcedure;
+      }),
+      _def: { inputs: [] },
+    };
+
+    const proxy = createProcedureBuilderProxy(mockProcedureBuilder as any);
+    const businessHandler = jest.fn().mockResolvedValue({ data: 'test' });
+    proxy.mutationStep(businessHandler);
+
+    // Simulate HTTP call (gateway mode)
+    const ctx = {
+      __aetherClient: mockClient,
+      __aetherConfig: mockConfig,
+      __stepName: 'demo.sync',
+    };
+
+    const result = await capturedHandler({ input: { msg: 'hello' }, ctx });
+
+    expect(mockClient.startWorkflow).toHaveBeenCalledWith({
+      workflowType: 'demo.sync',
+      input: { msg: 'hello' },
+    });
+    expect(mockClient.awaitResult).toHaveBeenCalledWith('wf-123');
+    expect(businessHandler).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: true });
+  });
+
+  it('should fall back to direct execution when no client in context', async () => {
+    const { createProcedureBuilderProxy } = await import('../src/procedure-builder-proxy');
+
+    const mockProcedure = { _def: {} };
+    let capturedHandler: any;
+    const mockProcedureBuilder = {
+      mutation: jest.fn().mockImplementation((h) => {
+        capturedHandler = h;
+        return mockProcedure;
+      }),
+      _def: { inputs: [] },
+    };
+
+    const proxy = createProcedureBuilderProxy(mockProcedureBuilder as any);
+    const businessHandler = jest.fn().mockResolvedValue({ data: 'direct' });
+    proxy.mutationStep(businessHandler);
+
+    // No __aetherClient in context
+    const result = await capturedHandler({ input: { msg: 'hello' }, ctx: {} });
+
+    expect(businessHandler).toHaveBeenCalledWith({ input: { msg: 'hello' }, ctx: {} });
+    expect(result).toEqual({ data: 'direct' });
+  });
+});
+
+describe('worker mode', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should execute handler directly when ctx.__aetherTask is true', async () => {
+    const { createProcedureBuilderProxy } = await import('../src/procedure-builder-proxy');
+
+    const mockProcedure = { _def: {} };
+    let capturedHandler: any;
+    const mockProcedureBuilder = {
+      mutation: jest.fn().mockImplementation((h) => {
+        capturedHandler = h;
+        return mockProcedure;
+      }),
+      _def: { inputs: [] },
+    };
+
+    const proxy = createProcedureBuilderProxy(mockProcedureBuilder as any);
+    const businessHandler = jest.fn().mockResolvedValue({ data: 'test' });
+    proxy.mutationStep(businessHandler);
+
+    // Simulate worker call
+    const ctx = {
+      __aetherTask: true,
+      __workflowId: 'wf-123',
+    };
+
+    const result = await capturedHandler({ input: { msg: 'hello' }, ctx });
+
+    expect(businessHandler).toHaveBeenCalledWith({ input: { msg: 'hello' }, ctx });
+    expect(result).toEqual({ data: 'test' });
+  });
+});

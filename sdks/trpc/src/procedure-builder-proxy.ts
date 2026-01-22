@@ -81,8 +81,9 @@ export type ExtendedProcedureBuilder<T> = WrapChainableMethods<T> & {
 };
 
 /**
- * Creates a step method (mutationStep or queryStep) that wraps the original
- * mutation/query method and attaches StepMeta to the result
+ * Creates a step method (mutationStep or queryStep) that:
+ * - In gateway mode (HTTP request): triggers workflow via Aether
+ * - In worker mode (Aether task): executes business logic directly
  */
 function createStepMethod(
   procedureBuilder: any,
@@ -99,12 +100,46 @@ function createStepMethod(
       handler = args[0];
     }
 
-    // Call the original mutation/query method
-    const procedure = procedureBuilder[type](handler);
+    // Gateway handler - wraps the business logic
+    const gatewayHandler = async ({ input, ctx }: { input: any; ctx?: any }) => {
+      // Worker mode: execute business logic directly
+      if (ctx?.__aetherTask) {
+        return handler({ input, ctx });
+      }
 
-    // Attach step metadata
+      // Gateway mode: trigger workflow via Aether
+      const client = ctx?.__aetherClient;
+      const config = ctx?.__aetherConfig;
+      const stepName = explicitName ?? ctx?.__stepName;
+
+      if (!client) {
+        // No client in context - fall back to direct execution
+        return handler({ input, ctx });
+      }
+
+      try {
+        const { workflowId } = await client.startWorkflow({
+          workflowType: stepName,
+          input,
+        });
+        const result = await client.awaitResult(workflowId);
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        return result.result;
+      } catch (error: any) {
+        return handleFallback(error, handler, { input, ctx }, config || { serverUrl: '', serviceName: '' });
+      }
+    };
+
+    // Call the original mutation/query method with gateway handler
+    const procedure = procedureBuilder[type](gatewayHandler);
+
+    // Attach step metadata (for worker registration)
     const meta: StepMeta = {
-      handler,
+      handler,  // Store original handler for worker mode
       type,
       explicitName,
     };
