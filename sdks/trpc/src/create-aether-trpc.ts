@@ -35,6 +35,10 @@ export interface AetherInstance {
   stop(): void;
   getSteps(): StepRegistry;
   getWorkerId(): string;
+  /** Get the Aether client for workflow operations */
+  getClient(): Client;
+  /** Get the config for fallback behavior */
+  getConfig(): AetherTrpcConfig;
 }
 
 export function createAetherTrpc(config: AetherTrpcConfig): {
@@ -142,6 +146,14 @@ export function createAetherTrpc(config: AetherTrpcConfig): {
 
     getWorkerId() {
       return workerId;
+    },
+
+    getClient() {
+      return client;
+    },
+
+    getConfig() {
+      return config;
     },
   };
 
