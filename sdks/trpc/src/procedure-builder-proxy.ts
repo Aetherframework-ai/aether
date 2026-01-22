@@ -2,6 +2,15 @@
 import { AETHER_STEP_META, StepMeta, StepHandler } from './types';
 
 /**
+ * Check if an error is a connection error (Aether server unavailable)
+ */
+export function isConnectionError(error: any): boolean {
+  return error?.code === 14  // gRPC UNAVAILABLE
+    || error?.message?.includes('ECONNREFUSED')
+    || error?.message?.includes('ETIMEDOUT');
+}
+
+/**
  * Type definitions for the step methods added by the proxy
  */
 type MutationStepFn = {

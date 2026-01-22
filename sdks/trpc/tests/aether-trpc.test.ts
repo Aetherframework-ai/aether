@@ -430,3 +430,25 @@ describe('StepMeta types', () => {
     expect(typeof AETHER_STEP_META).toBe('symbol');
   });
 });
+
+describe('isConnectionError', () => {
+  it('should return true for gRPC UNAVAILABLE error', async () => {
+    const { isConnectionError } = await import('../src/procedure-builder-proxy');
+    expect(isConnectionError({ code: 14 })).toBe(true);
+  });
+
+  it('should return true for ECONNREFUSED error', async () => {
+    const { isConnectionError } = await import('../src/procedure-builder-proxy');
+    expect(isConnectionError({ message: 'connect ECONNREFUSED 127.0.0.1:7233' })).toBe(true);
+  });
+
+  it('should return true for ETIMEDOUT error', async () => {
+    const { isConnectionError } = await import('../src/procedure-builder-proxy');
+    expect(isConnectionError({ message: 'connect ETIMEDOUT' })).toBe(true);
+  });
+
+  it('should return false for other errors', async () => {
+    const { isConnectionError } = await import('../src/procedure-builder-proxy');
+    expect(isConnectionError({ message: 'Some other error' })).toBe(false);
+  });
+});
