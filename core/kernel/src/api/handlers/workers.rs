@@ -13,6 +13,16 @@ use crate::task::ResourceType;
 pub type AppState<P> = Arc<Scheduler<P>>;
 
 /// POST /workers - Register a new worker
+#[utoipa::path(
+    post,
+    path = "/workers",
+    request_body = RegisterWorkerRequest,
+    responses(
+        (status = 201, description = "Worker registered", body = RegisterWorkerResponse),
+        (status = 400, description = "Invalid input"),
+    ),
+    tag = "workers"
+)]
 pub async fn register_worker<P: Persistence + Clone + Send + Sync + 'static>(
     State(scheduler): State<AppState<P>>,
     Json(req): Json<RegisterWorkerRequest>,
@@ -54,6 +64,16 @@ pub async fn register_worker<P: Persistence + Clone + Send + Sync + 'static>(
 }
 
 /// POST /workers/{id}/heartbeat - Worker heartbeat
+#[utoipa::path(
+    post,
+    path = "/workers/{id}/heartbeat",
+    params(("id" = String, Path, description = "Worker ID")),
+    responses(
+        (status = 200, description = "Heartbeat acknowledged", body = HeartbeatResponse),
+        (status = 404, description = "Worker not found"),
+    ),
+    tag = "workers"
+)]
 pub async fn worker_heartbeat<P: Persistence + Clone + Send + Sync + 'static>(
     State(_scheduler): State<AppState<P>>,
     Path(_worker_id): Path<String>,

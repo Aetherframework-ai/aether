@@ -27,6 +27,18 @@ fn parse_task_id(task_id: &str) -> Result<(&str, &str), ApiError> {
 }
 
 /// POST /steps/{taskId}/report - Report step status
+#[utoipa::path(
+    post,
+    path = "/steps/{taskId}/report",
+    params(("taskId" = String, Path, description = "Task ID")),
+    request_body = ReportStepRequest,
+    responses(
+        (status = 200, description = "Step status reported", body = StepResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 404, description = "Task not found"),
+    ),
+    tag = "steps"
+)]
 pub async fn report_step<P: Persistence + Clone + Send + Sync + 'static>(
     State(scheduler): State<AppState<P>>,
     Path(task_id): Path<String>,
@@ -77,6 +89,18 @@ pub async fn report_step<P: Persistence + Clone + Send + Sync + 'static>(
 }
 
 /// POST /steps/{taskId}/complete - Complete a step
+#[utoipa::path(
+    post,
+    path = "/steps/{taskId}/complete",
+    params(("taskId" = String, Path, description = "Task ID")),
+    request_body = CompleteStepRequest,
+    responses(
+        (status = 200, description = "Step completed", body = StepResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 404, description = "Task not found"),
+    ),
+    tag = "steps"
+)]
 pub async fn complete_step<P: Persistence + Clone + Send + Sync + 'static>(
     State(scheduler): State<AppState<P>>,
     Path(task_id): Path<String>,

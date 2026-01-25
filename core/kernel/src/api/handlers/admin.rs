@@ -10,6 +10,14 @@ use crate::state_machine::WorkflowState;
 pub type AppState<P> = Arc<Scheduler<P>>;
 
 /// GET /metrics - Get system metrics
+#[utoipa::path(
+    get,
+    path = "/metrics",
+    responses(
+        (status = 200, description = "System metrics", body = MetricsResponse),
+    ),
+    tag = "admin"
+)]
 pub async fn get_metrics<P: Persistence + Clone + Send + Sync + 'static>(
     State(scheduler): State<AppState<P>>,
 ) -> Result<Json<MetricsResponse>, ApiError> {

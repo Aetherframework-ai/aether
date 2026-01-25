@@ -18,11 +18,19 @@ use crate::persistence::Persistence;
 use crate::scheduler::Scheduler;
 
 /// OpenAPI documentation for the Aether Kernel REST API.
-///
-/// Note: Handler paths will be added in Task 7 when utoipa::path annotations are implemented.
 #[derive(OpenApi)]
 #[openapi(
-    // paths(...) will be added after handlers have #[utoipa::path] annotations
+    paths(
+        workflows::create_workflow,
+        workflows::get_workflow_status,
+        workflows::get_workflow_result,
+        workflows::cancel_workflow,
+        workers::register_worker,
+        workers::worker_heartbeat,
+        steps::report_step,
+        steps::complete_step,
+        admin::get_metrics,
+    ),
     components(schemas(
         CreateWorkflowRequest,
         WorkflowOptions,

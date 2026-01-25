@@ -27,6 +27,16 @@ fn default_timeout() -> u64 {
 }
 
 /// POST /workflows - Create a new workflow
+#[utoipa::path(
+    post,
+    path = "/workflows",
+    request_body = CreateWorkflowRequest,
+    responses(
+        (status = 201, description = "Workflow created", body = CreateWorkflowResponse),
+        (status = 400, description = "Invalid input"),
+    ),
+    tag = "workflows"
+)]
 pub async fn create_workflow<P: Persistence + Clone + Send + Sync + 'static>(
     State(scheduler): State<AppState<P>>,
     Json(req): Json<CreateWorkflowRequest>,
@@ -55,6 +65,16 @@ pub async fn create_workflow<P: Persistence + Clone + Send + Sync + 'static>(
 }
 
 /// GET /workflows/{id} - Get workflow status
+#[utoipa::path(
+    get,
+    path = "/workflows/{id}",
+    params(("id" = String, Path, description = "Workflow ID")),
+    responses(
+        (status = 200, description = "Workflow status", body = WorkflowStatusResponse),
+        (status = 404, description = "Workflow not found"),
+    ),
+    tag = "workflows"
+)]
 pub async fn get_workflow_status<P: Persistence + Clone + Send + Sync + 'static>(
     State(scheduler): State<AppState<P>>,
     Path(workflow_id): Path<String>,
@@ -90,6 +110,20 @@ pub async fn get_workflow_status<P: Persistence + Clone + Send + Sync + 'static>
 }
 
 /// GET /workflows/{id}/result - Wait for and get workflow result
+#[utoipa::path(
+    get,
+    path = "/workflows/{id}/result",
+    params(
+        ("id" = String, Path, description = "Workflow ID"),
+        ("timeout" = u64, Query, description = "Timeout in seconds"),
+    ),
+    responses(
+        (status = 200, description = "Workflow result", body = WorkflowResultResponse),
+        (status = 404, description = "Workflow not found"),
+        (status = 408, description = "Request timeout"),
+    ),
+    tag = "workflows"
+)]
 pub async fn get_workflow_result<P: Persistence + Clone + Send + Sync + 'static>(
     State(scheduler): State<AppState<P>>,
     Path(workflow_id): Path<String>,
@@ -148,6 +182,16 @@ pub async fn get_workflow_result<P: Persistence + Clone + Send + Sync + 'static>
 }
 
 /// DELETE /workflows/{id} - Cancel a workflow
+#[utoipa::path(
+    delete,
+    path = "/workflows/{id}",
+    params(("id" = String, Path, description = "Workflow ID")),
+    responses(
+        (status = 202, description = "Workflow cancelled", body = CancelWorkflowResponse),
+        (status = 404, description = "Workflow not found"),
+    ),
+    tag = "workflows"
+)]
 pub async fn cancel_workflow<P: Persistence + Clone + Send + Sync + 'static>(
     State(scheduler): State<AppState<P>>,
     Path(workflow_id): Path<String>,
