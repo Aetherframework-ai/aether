@@ -3,6 +3,7 @@ pub mod dashboard_assets;
 #[cfg(feature = "dashboard")]
 pub mod dashboard_server;
 
+pub mod api;
 pub mod broadcaster;
 pub mod execution;
 pub mod grpc_server;
