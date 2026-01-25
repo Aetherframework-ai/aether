@@ -8,11 +8,8 @@ license = "Apache-2.0"
 [features]
 default = ["dashboard"]
 dashboard = [
-    "axum",
-    "tower-http",
     "rust-embed",
     "mime_guess",
-    "futures-util",
     "serde/derive",
 ]
 
@@ -39,9 +36,15 @@ async-trait = "0.1"
 futures = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 
-# Dashboard feature dependencies
-axum = { version = "0.7", features = ["ws"], optional = true }
-tower-http = { version = "0.5", features = ["fs", "cors"], optional = true }
+# Axum and OpenAPI dependencies
+axum = { version = "0.7", features = ["ws"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
+tower = "0.5"
+tower-http = { version = "0.5", features = ["fs", "cors", "trace"] }
+utoipa = { version = "4", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "7", features = ["axum"] }
+futures-util = "0.3"
+
+# Dashboard feature dependencies (optional)
 rust-embed = { version = "8", optional = true }
 mime_guess = { version = "2", optional = true }
-futures-util = { version = "0.3", optional = true }
