@@ -90,26 +90,26 @@ pub fn create_router<P: Persistence + Clone + Send + Sync + 'static>(
     Router::new()
         // Workflow routes
         .route("/workflows", post(workflows::create_workflow::<P>))
-        .route("/workflows/{id}", get(workflows::get_workflow_status::<P>))
+        .route("/workflows/:id", get(workflows::get_workflow_status::<P>))
         .route(
-            "/workflows/{id}/result",
+            "/workflows/:id/result",
             get(workflows::get_workflow_result::<P>),
         )
         .route(
-            "/workflows/{id}",
+            "/workflows/:id",
             delete(workflows::cancel_workflow::<P>),
         )
         // Worker routes
         .route("/workers", post(workers::register_worker::<P>))
-        .route("/workers/{id}/tasks", get(websocket::worker_tasks_ws::<P>))
+        .route("/workers/:id/tasks", get(websocket::worker_tasks_ws::<P>))
         .route(
-            "/workers/{id}/heartbeat",
+            "/workers/:id/heartbeat",
             post(workers::worker_heartbeat::<P>),
         )
         // Step routes
-        .route("/steps/{taskId}/report", post(steps::report_step::<P>))
+        .route("/steps/:taskId/report", post(steps::report_step::<P>))
         .route(
-            "/steps/{taskId}/complete",
+            "/steps/:taskId/complete",
             post(steps::complete_step::<P>),
         )
         // Admin routes

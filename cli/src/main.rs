@@ -130,12 +130,9 @@ enum Commands {
         /// Database path (default: ./data/aether.db)
         #[arg(long, default_value = "./data/aether.db")]
         db: PathBuf,
-        /// gRPC port (default: 7233)
+        /// API port (default: 7233)
         #[arg(long, default_value = "7233")]
-        grpc_port: u16,
-        /// HTTP port for dashboard (default: 7234)
-        #[arg(long, default_value = "7234")]
-        http_port: u16,
+        port: u16,
         /// Enable Dashboard (default: true)
         #[arg(long, default_value = "true")]
         dashboard: bool,
@@ -219,16 +216,14 @@ async fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Serve {
             db,
-            grpc_port,
-            http_port,
+            port,
             dashboard,
             dashboard_port,
             persistence,
         } => {
             serve_command(
                 db,
-                grpc_port,
-                http_port,
+                port,
                 dashboard,
                 dashboard_port,
                 persistence,
@@ -249,16 +244,14 @@ async fn main() -> anyhow::Result<()> {
 
 async fn serve_command(
     db: PathBuf,
-    grpc_port: u16,
-    http_port: u16,
+    port: u16,
     dashboard: bool,
     dashboard_port: u16,
     persistence: String,
 ) -> anyhow::Result<()> {
     println!("Starting Aether server...");
     println!("Database: {:?}", db);
-    println!("gRPC Port: {}", grpc_port);
-    println!("HTTP Port: {}", http_port);
+    println!("API Port: {}", port);
     println!(
         "Dashboard: {}",
         if dashboard { "enabled" } else { "disabled" }
@@ -317,10 +310,11 @@ async fn serve_command(
     // 创建调度器
     let scheduler = Scheduler::new(persistence);
 
-    // 启动 gRPC 服务器
-    let addr = format!("0.0.0.0:{}", grpc_port);
+    // 启动 REST API 服务器
+    let addr = format!("0.0.0.0:{}", port);
     println!();
     println!("🚀 Aether server starting on {}", addr);
+    println!("📚 Swagger UI available at http://localhost:{}/swagger-ui", port);
     println!();
     println!("Press Ctrl+C to stop the server");
     println!();
