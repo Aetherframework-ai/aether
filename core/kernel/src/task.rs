@@ -33,6 +33,7 @@ pub struct Task {
     pub resource_type: ResourceType,
     pub input: Vec<u8>,
     pub retry: Option<RetryPolicy>,
+    pub workflow_type: String,
 }
 
 #[derive(Debug, Clone)]

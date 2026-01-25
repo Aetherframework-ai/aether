@@ -16,10 +16,11 @@ async function bootstrap() {
   console.log(`[NestJS] Demo service running on http://localhost:${port}`);
   console.log(`[NestJS] tRPC endpoint: http://localhost:${port}/trpc`);
 
-  // Start Aether worker if enabled
-  if (process.env.AETHER_WORKER_ENABLED === "true") {
+  // Start Aether worker (default: enabled, set AETHER_WORKER_ENABLED=false to disable)
+  if (process.env.AETHER_WORKER_ENABLED !== "false") {
     const trpcService = app.get(TrpcService);
     await trpcService.aether.serve();
+    console.log("[NestJS] Aether worker started");
   }
 }
 

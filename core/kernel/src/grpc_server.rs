@@ -304,6 +304,7 @@ where
                         initial_interval: r.initial_interval as i32,
                         backoff_multiplier: r.backoff_multiplier as i32,
                     }),
+                    workflow_type: task.workflow_type,
                 };
                 let _ = tx.send(Ok(proto_task)).await;
             }

@@ -26,6 +26,7 @@ interface AetherTask {
   taskId: string;
   stepName: string;
   workflowId: string;
+  workflowType: string;
   input: unknown;
 }
 
@@ -117,11 +118,15 @@ export function createAetherTrpc(config: AetherTrpcConfig): {
         throw new Error('[AetherTrpc] No steps registered. Did you forget to call bindRouter()?');
       }
 
+      // Note: Aether server currently uses 'language' field as 'workflow_types'
+      // So we put step names here to enable task matching
+      const stepNames = Array.from(steps.keys());
+
       await client.register({
         workerId,
         serviceName: config.serviceName,
         group: config.group || 'default',
-        language: ['typescript', 'trpc'],
+        language: stepNames,  // Used as workflow_types by Aether server
         provides: Array.from(steps.values()).map((s) => ({
           name: s.name,
           type: 1,
@@ -158,11 +163,16 @@ export function createAetherTrpc(config: AetherTrpcConfig): {
   };
 
   function startPolling() {
+    console.log('[AetherTrpc] Starting polling, registered steps:', Array.from(steps.keys()));
     pollingInterval = setInterval(async () => {
       if (!isRunning) return;
 
       try {
         const tasks = await client.pollTasksOnce(workerId, 10);
+
+        if (tasks.length > 0) {
+          console.log('[AetherTrpc] Received tasks:', tasks.map(t => ({ stepName: t.stepName, workflowType: t.workflowType, taskId: t.taskId })));
+        }
 
         for (const task of tasks) {
           await handleTask(task);
@@ -174,10 +184,19 @@ export function createAetherTrpc(config: AetherTrpcConfig): {
   }
 
   async function handleTask(task: AetherTask) {
-    const step = steps.get(task.stepName);
+    // For "start" step, look up handler by workflowType (used by single-step auto-workflows)
+    let step = steps.get(task.stepName);
+    const effectiveStepName = task.stepName === 'start' && !step && task.workflowType
+      ? task.workflowType
+      : task.stepName;
+
+    if (!step && task.stepName === 'start' && task.workflowType) {
+      step = steps.get(task.workflowType);
+    }
+
     if (!step) {
-      console.error(`[AetherTrpc] No handler for step: ${task.stepName}`);
-      await client.completeStep(task.taskId, {}, `No handler: ${task.stepName}`);
+      console.error(`[AetherTrpc] No handler for step: ${effectiveStepName}`);
+      await client.completeStep(task.taskId, {}, `No handler: ${effectiveStepName}`);
       return;
     }
 
@@ -189,12 +208,12 @@ export function createAetherTrpc(config: AetherTrpcConfig): {
     };
 
     try {
-      await client.reportStepStarted(task.workflowId, task.stepName, task.input);
+      await client.reportStepStarted(task.workflowId, effectiveStepName, task.input);
       const result = await step.handler({ input: task.input, ctx });
-      await client.reportStepCompleted(task.workflowId, task.stepName, result);
+      await client.reportStepCompleted(task.workflowId, effectiveStepName, result);
       await client.completeStep(task.taskId, result);
     } catch (error: any) {
-      await client.reportStepFailed(task.workflowId, task.stepName, error.message);
+      await client.reportStepFailed(task.workflowId, effectiveStepName, error.message);
       await client.completeStep(task.taskId, {}, error.message);
     }
   }
