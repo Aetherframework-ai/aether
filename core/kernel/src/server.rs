@@ -1,24 +1,21 @@
-use crate::grpc_server::ClientService;
+use std::sync::Arc;
+use tower_http::trace::TraceLayer;
+
+use crate::api::routes::create_router;
 use crate::persistence::Persistence;
-use crate::proto::client_service_server::ClientServiceServer;
-use crate::proto::worker_service_server::WorkerServiceServer;
 use crate::scheduler::Scheduler;
-use tonic::transport::Server;
 
 pub async fn start_server<P: Persistence + Clone + Send + Sync + 'static>(
     scheduler: Scheduler<P>,
     listen_addr: &str,
 ) -> anyhow::Result<()> {
-    println!("Starting Aether server on {}", listen_addr);
+    let scheduler = Arc::new(scheduler);
 
-    let client_service = ClientService::new(scheduler);
+    let app = create_router(scheduler).layer(TraceLayer::new_for_http());
 
-    let addr = listen_addr.parse::<std::net::SocketAddr>()?;
-    Server::builder()
-        .add_service(ClientServiceServer::new(client_service.clone()))
-        .add_service(WorkerServiceServer::new(client_service))
-        .serve(addr)
-        .await?;
+    let listener = tokio::net::TcpListener::bind(listen_addr).await?;
+    tracing::info!("REST API server listening on {}", listen_addr);
 
+    axum::serve(listener, app).await?;
     Ok(())
 }
