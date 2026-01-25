@@ -6,7 +6,6 @@ pub mod dashboard_server;
 pub mod api;
 pub mod broadcaster;
 pub mod execution;
-pub mod grpc_server;
 pub mod kernel;
 pub mod persistence;
 pub mod scheduler;
@@ -17,10 +16,6 @@ pub mod task;
 pub mod tracker;
 pub mod worker;
 pub mod workflow;
-
-#[rustfmt::skip]
-#[path = "proto/aether.v1.rs"]
-pub mod proto;
 
 pub use broadcaster::{EventBroadcaster, EventPayload, EventType, WorkflowEvent};
 pub use execution::{ExecutionContext, ExecutionResult};

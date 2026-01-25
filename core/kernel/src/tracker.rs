@@ -21,24 +21,6 @@ pub struct Timestamp {
     pub nanos: i32,
 }
 
-impl From<prost_types::Timestamp> for Timestamp {
-    fn from(ts: prost_types::Timestamp) -> Self {
-        Self {
-            seconds: ts.seconds,
-            nanos: ts.nanos,
-        }
-    }
-}
-
-impl From<Timestamp> for prost_types::Timestamp {
-    fn from(ts: Timestamp) -> Self {
-        Self {
-            seconds: ts.seconds,
-            nanos: ts.nanos,
-        }
-    }
-}
-
 /// 单个 Step 的执行记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StepExecution {

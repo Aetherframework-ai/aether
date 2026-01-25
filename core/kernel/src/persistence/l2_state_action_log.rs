@@ -1,7 +1,7 @@
 use super::Persistence;
 use crate::state_machine::Workflow;
 use crate::state_machine::WorkflowState;
-use prost_types::Timestamp;
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use tokio::sync::RwLock;
 
@@ -18,7 +18,7 @@ pub struct ActionLog {
     pub workflow_id: String,
     pub step_name: String,
     pub action: String,
-    pub timestamp: Timestamp,
+    pub timestamp: DateTime<Utc>,
     pub input: Vec<u8>,
     pub output: Vec<u8>,
 }
@@ -67,7 +67,7 @@ impl Persistence for L2StateActionStore {
         let mut workflows = self.workflows.write().await;
         if let Some(workflow) = workflows.get_mut(id) {
             workflow.state = state;
-            workflow.updated_at = Timestamp::from(std::time::SystemTime::now());
+            workflow.updated_at = Utc::now();
         }
         Ok(())
     }

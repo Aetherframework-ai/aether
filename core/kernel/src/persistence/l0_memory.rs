@@ -1,6 +1,6 @@
 use crate::state_machine::Workflow;
 use crate::state_machine::WorkflowState;
-use prost_types::Timestamp;
+use chrono::Utc;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
 
@@ -52,7 +52,7 @@ impl super::Persistence for L0MemoryStore {
         let mut workflows = self.workflows.write().await;
         if let Some(workflow) = workflows.get_mut(id) {
             workflow.state = state;
-            workflow.updated_at = Timestamp::from(std::time::SystemTime::now());
+            workflow.updated_at = Utc::now();
         }
         Ok(())
     }
