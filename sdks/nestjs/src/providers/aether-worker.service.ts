@@ -7,13 +7,11 @@ import {
   Optional,
 } from "@nestjs/common";
 import { AETHER_CONFIG_TOKEN } from "../aether.constants";
-import * as grpc from "@grpc/grpc-js";
-import * as protoLoader from "@grpc/proto-loader";
-import * as path from "path";
+import WebSocket from "ws";
 
 export interface AetherWorkerConfig {
   /**
-   * Aether server URL (e.g., 'localhost:7233')
+   * Aether server URL (e.g., 'http://localhost:7233')
    */
   serverUrl: string;
 
@@ -40,21 +38,16 @@ export interface AetherWorkerConfig {
   autoServe?: boolean;
 
   /**
-   * Polling interval in milliseconds
-   * @default 200
+   * Reconnect interval in milliseconds when WebSocket disconnects
+   * @default 1000
    */
-  pollingInterval?: number;
+  reconnectInterval?: number;
 
   /**
-   * Maximum tasks to poll at once
+   * Maximum reconnection attempts
    * @default 10
    */
-  maxTasks?: number;
-
-  /**
-   * Path to the proto file
-   */
-  protoPath?: string;
+  maxReconnectAttempts?: number;
 }
 
 export interface RegisteredHandler {
@@ -64,41 +57,49 @@ export interface RegisteredHandler {
   options?: Record<string, any>;
 }
 
+export interface Task {
+  taskId: string;
+  workflowId: string;
+  stepName: string;
+  input: any;
+  retryPolicy?: { maxRetries: number; backoff: string };
+}
+
+export interface RegisterResponse {
+  workerId: string;
+  sessionToken: string;
+}
+
 /**
  * Token for injecting the step registry
  */
 export const AETHER_STEP_REGISTRY_TOKEN = "AETHER_STEP_REGISTRY_TOKEN";
 
 /**
- * Internal gRPC client for Aether communication
+ * Internal HTTP + WebSocket client for Aether communication
  */
-class AetherGrpcClient {
-  private workerService: any;
+class AetherHttpClient {
+  private baseUrl: string;
+  private wsUrl: string;
+  private ws: WebSocket | null = null;
+  private workerId: string | null = null;
+  private sessionToken: string | null = null;
+  private onTaskCallback: ((task: Task) => void) | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts: number;
+  private reconnectInterval: number;
+  private isConnected = false;
+  private logger = new Logger("AetherHttpClient");
 
-  constructor(serverUrl: string, protoPath?: string) {
-    // Default proto path
-    const resolvedProtoPath =
-      protoPath || path.resolve(__dirname, "../../../../proto/aether.proto");
-
-    // Load proto definition
-    const packageDefinition = protoLoader.loadSync(resolvedProtoPath, {
-      keepCase: false,
-      longs: String,
-      enums: String,
-      defaults: true,
-      oneofs: true,
-    });
-
-    const aetherProto = grpc.loadPackageDefinition(packageDefinition) as any;
-
-    // Extract host:port from URL
-    const url = serverUrl.replace(/^https?:\/\//, "");
-
-    // Create gRPC client
-    this.workerService = new aetherProto.aether.v1.WorkerService(
-      url,
-      grpc.credentials.createInsecure()
-    );
+  constructor(
+    serverUrl: string,
+    reconnectInterval = 1000,
+    maxReconnectAttempts = 10
+  ) {
+    this.baseUrl = serverUrl.replace(/\/$/, "");
+    this.wsUrl = this.baseUrl.replace(/^http/, "ws");
+    this.reconnectInterval = reconnectInterval;
+    this.maxReconnectAttempts = maxReconnectAttempts;
   }
 
   async register(request: {
@@ -106,49 +107,110 @@ class AetherGrpcClient {
     serviceName: string;
     group: string;
     language: string[];
-    provides: Array<{ name: string; type: number }>;
-  }): Promise<{ serverId: string }> {
-    return new Promise((resolve, reject) => {
-      this.workerService.register(request, (error: any, response: any) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve({ serverId: response.serverId });
+    provides: Array<{ name: string; type: string }>;
+  }): Promise<RegisterResponse> {
+    const resources = request.provides.map((p) => ({
+      name: p.name,
+      type: p.type,
+    }));
+
+    const res = await fetch(`${this.baseUrl}/workers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        serviceName: request.serviceName,
+        group: request.group,
+        language: request.language,
+        resources,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to register worker: ${res.statusText}`);
+    }
+
+    const data = (await res.json()) as RegisterResponse;
+    this.workerId = data.workerId;
+    this.sessionToken = data.sessionToken;
+    return data;
+  }
+
+  connect(onTask: (task: Task) => void): void {
+    if (!this.workerId || !this.sessionToken) {
+      throw new Error("Must register before connecting");
+    }
+
+    this.onTaskCallback = onTask;
+    this.establishWebSocket();
+  }
+
+  private establishWebSocket(): void {
+    if (!this.workerId || !this.sessionToken) return;
+
+    const wsEndpoint = `${this.wsUrl}/workers/${this.workerId}/tasks?token=${this.sessionToken}`;
+    this.logger.debug(`Connecting to WebSocket: ${wsEndpoint}`);
+
+    this.ws = new WebSocket(wsEndpoint);
+
+    this.ws.on("open", () => {
+      this.logger.log("WebSocket connected");
+      this.isConnected = true;
+      this.reconnectAttempts = 0;
+    });
+
+    this.ws.on("message", (data: WebSocket.Data) => {
+      try {
+        const msg = JSON.parse(data.toString());
+        if (msg.type === "task" && this.onTaskCallback) {
+          this.onTaskCallback(msg.payload);
+          // Send acknowledgment
+          this.ws?.send(
+            JSON.stringify({ type: "ack", taskId: msg.payload.taskId })
+          );
         }
-      });
+      } catch (error: any) {
+        this.logger.error(`Failed to parse WebSocket message: ${error.message}`);
+      }
+    });
+
+    this.ws.on("error", (error: Error) => {
+      this.logger.error(`WebSocket error: ${error.message}`);
+    });
+
+    this.ws.on("close", () => {
+      this.logger.warn("WebSocket disconnected");
+      this.isConnected = false;
+      this.attemptReconnect();
     });
   }
 
-  async pollTasksOnce(workerId: string, maxTasks: number): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      const tasks: any[] = [];
-      const call = this.workerService.pollTasks({ workerId, maxTasks });
+  private attemptReconnect(): void {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.logger.error(
+        `Max reconnection attempts (${this.maxReconnectAttempts}) reached`
+      );
+      return;
+    }
 
-      call.on("data", (task: any) => {
-        let input = null;
-        if (task.input?.length > 0) {
-          try {
-            input = JSON.parse(task.input.toString());
-          } catch {
-            input = task.input;
-          }
-        }
-        tasks.push({ ...task, input });
-      });
+    this.reconnectAttempts++;
+    this.logger.log(
+      `Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectInterval}ms`
+    );
 
-      call.on("error", (error: any) => {
-        if (error.code === 1) {
-          // CANCELLED
-          resolve(tasks);
-        } else {
-          reject(error);
-        }
-      });
+    setTimeout(() => {
+      if (!this.isConnected && this.onTaskCallback) {
+        this.establishWebSocket();
+      }
+    }, this.reconnectInterval);
+  }
 
-      call.on("end", () => {
-        resolve(tasks);
-      });
-    });
+  disconnect(): void {
+    this.isConnected = false;
+    this.onTaskCallback = null;
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
   }
 
   async completeStep(
@@ -156,21 +218,12 @@ class AetherGrpcClient {
     result: any,
     error?: string
   ): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      const grpcRequest = {
-        taskId,
-        result: Buffer.from(JSON.stringify(result)),
-        error: error || "",
-      };
-
-      this.workerService.completeStep(grpcRequest, (err: any, response: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(response.success);
-        }
-      });
+    const res = await fetch(`${this.baseUrl}/steps/${taskId}/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ output: result, error }),
     });
+    return res.ok;
   }
 
   async reportStepStarted(
@@ -178,24 +231,17 @@ class AetherGrpcClient {
     stepName: string,
     input: any
   ): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      const grpcRequest = {
+    const res = await fetch(`${this.baseUrl}/steps/report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         workflowId,
         stepName,
-        status: 0, // STEP_STARTED
-        input: Buffer.from(JSON.stringify(input || {})),
-        output: Buffer.alloc(0),
-        error: "",
-      };
-
-      this.workerService.reportStep(grpcRequest, (err: any, response: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(response.success);
-        }
-      });
+        status: "STARTED",
+        input,
+      }),
     });
+    return res.ok;
   }
 
   async reportStepCompleted(
@@ -203,24 +249,17 @@ class AetherGrpcClient {
     stepName: string,
     output: any
   ): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      const grpcRequest = {
+    const res = await fetch(`${this.baseUrl}/steps/report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         workflowId,
         stepName,
-        status: 1, // STEP_COMPLETED
-        input: Buffer.alloc(0),
-        output: Buffer.from(JSON.stringify(output || {})),
-        error: "",
-      };
-
-      this.workerService.reportStep(grpcRequest, (err: any, response: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(response.success);
-        }
-      });
+        status: "COMPLETED",
+        output,
+      }),
     });
+    return res.ok;
   }
 
   async reportStepFailed(
@@ -228,31 +267,35 @@ class AetherGrpcClient {
     stepName: string,
     error: string
   ): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      const grpcRequest = {
+    const res = await fetch(`${this.baseUrl}/steps/report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         workflowId,
         stepName,
-        status: 2, // STEP_FAILED
-        input: Buffer.alloc(0),
-        output: Buffer.alloc(0),
+        status: "FAILED",
         error,
-      };
-
-      this.workerService.reportStep(grpcRequest, (err: any, response: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(response.success);
-        }
-      });
+      }),
     });
+    return res.ok;
+  }
+
+  async heartbeat(): Promise<boolean> {
+    if (!this.workerId) return false;
+    const res = await fetch(
+      `${this.baseUrl}/workers/${this.workerId}/heartbeat`,
+      {
+        method: "POST",
+      }
+    );
+    return res.ok;
   }
 }
 
 @Injectable()
 export class AetherWorkerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AetherWorkerService.name);
-  private client: AetherGrpcClient | null = null;
+  private client: AetherHttpClient | null = null;
   private workerId: string;
   private isRunning = false;
   private handlers = new Map<string, RegisteredHandler>();
@@ -324,16 +367,17 @@ export class AetherWorkerService implements OnModuleInit, OnModuleDestroy {
       `Handlers: ${Array.from(this.handlers.keys()).join(", ") || "(none)"}`
     );
 
-    // Create gRPC client
-    this.client = new AetherGrpcClient(
+    // Create HTTP + WebSocket client
+    this.client = new AetherHttpClient(
       this.config.serverUrl,
-      this.config.protoPath
+      this.config.reconnectInterval,
+      this.config.maxReconnectAttempts
     );
 
     // Prepare provides list
     const provides = Array.from(this.handlers.values()).map((handler) => ({
       name: handler.name,
-      type: handler.type === "step" ? 1 : 0, // ResourceType.STEP = 1, ACTIVITY = 0
+      type: handler.type,
     }));
 
     // Register with Aether core
@@ -345,15 +389,19 @@ export class AetherWorkerService implements OnModuleInit, OnModuleDestroy {
         language: ["typescript", "nestjs"],
         provides,
       });
-      this.logger.log(`Worker registered with server: ${response.serverId}`);
+      this.logger.log(`Worker registered with server: ${response.workerId}`);
     } catch (error: any) {
       this.logger.error(`Failed to register worker: ${error.message}`);
       throw error;
     }
 
-    // Start polling
+    // Start WebSocket connection for task polling
     this.isRunning = true;
-    this.startPolling();
+    this.client.connect((task: Task) => {
+      this.handleTask(task).catch((error) => {
+        this.logger.error(`Task handling error: ${error.message}`);
+      });
+    });
 
     this.logger.log("Aether worker started successfully!");
   }
@@ -363,37 +411,14 @@ export class AetherWorkerService implements OnModuleInit, OnModuleDestroy {
    */
   async stop(): Promise<void> {
     this.isRunning = false;
+    if (this.client) {
+      this.client.disconnect();
+      this.client = null;
+    }
     this.logger.log("Aether worker stopped");
   }
 
-  private async startPolling(): Promise<void> {
-    const pollingInterval = this.config.pollingInterval || 200;
-    const maxTasks = this.config.maxTasks || 10;
-
-    const runLoop = async () => {
-      while (this.isRunning && this.client) {
-        try {
-          const tasks = await this.client.pollTasksOnce(this.workerId, maxTasks);
-
-          for (const task of tasks) {
-            await this.handleTask(task);
-          }
-
-          // Wait before next poll
-          await new Promise((resolve) => setTimeout(resolve, pollingInterval));
-        } catch (error: any) {
-          this.logger.error(`Polling error: ${error.message}`);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-      }
-    };
-
-    runLoop().catch((error) => {
-      this.logger.error(`Poll loop error: ${error.message}`);
-    });
-  }
-
-  private async handleTask(task: any): Promise<void> {
+  private async handleTask(task: Task): Promise<void> {
     const { taskId, stepName, workflowId, input } = task;
 
     this.logger.debug(`Received task: ${taskId}, step: ${stepName}`);
