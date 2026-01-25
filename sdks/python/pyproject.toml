@@ -20,9 +20,8 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "aiohttp>=3.9.0",
-    "grpcio>=1.59.0",
-    "grpcio-tools>=1.59.0",
+    "httpx>=0.25.0",
+    "websockets>=12.0",
 ]
 
 [project.optional-dependencies]
