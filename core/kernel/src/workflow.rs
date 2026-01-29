@@ -31,6 +31,7 @@ impl WorkflowExecutor {
                 resource_type: crate::task::ResourceType::Step,
                 input: self.workflow.input.clone(),
                 retry: None,
+                workflow_type: self.workflow.workflow_type.clone(),
             }),
             _ => None,
         }

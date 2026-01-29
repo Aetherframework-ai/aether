@@ -1,0 +1,15 @@
+{
+	"name": "multilang-workflow-example",
+	"version": "0.1.0",
+	"type": "module",
+	"scripts": {
+		"workflow": "bun run workflow.ts"
+	},
+	"dependencies": {
+		"@aetherframework.ai/sdk": "file:../../sdks/typescript"
+	},
+	"devDependencies": {
+		"@types/node": "^22.0.0",
+		"typescript": "^5.0.0"
+	}
+}

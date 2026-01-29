@@ -2,14 +2,6 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() {
-    // Proto 编译
-    let proto_path = Path::new("proto/aether.proto");
-    tonic_build::configure()
-        .out_dir("src/proto")
-        .file_descriptor_set_path("src/proto/descriptor.bin")
-        .compile(&[proto_path], &["proto"])
-        .unwrap();
-
     // Dashboard 构建（仅在启用 dashboard feature 时）
     #[cfg(feature = "dashboard")]
     build_dashboard();

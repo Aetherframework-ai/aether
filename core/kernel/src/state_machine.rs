@@ -1,4 +1,4 @@
-use prost_types::Timestamp;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -65,20 +65,20 @@ pub struct Workflow {
     pub state: WorkflowState,
     pub input: Vec<u8>,
     pub steps_completed: HashMap<String, Vec<u8>>,
-    pub started_at: Timestamp,
-    pub updated_at: Timestamp,
+    pub started_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl Workflow {
     pub fn new(id: String, workflow_type: String, input: Vec<u8>) -> Self {
-        let now = Timestamp::from(std::time::SystemTime::now());
+        let now = Utc::now();
         Workflow {
             id,
             workflow_type,
             state: WorkflowState::Pending,
             input,
             steps_completed: HashMap::new(),
-            started_at: now.clone(),
+            started_at: now,
             updated_at: now,
         }
     }

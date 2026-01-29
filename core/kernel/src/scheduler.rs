@@ -113,6 +113,7 @@ impl<P: Persistence> Scheduler<P> {
                             resource_type,
                             input: workflow.input.clone(),
                             retry: None,
+                            workflow_type: workflow.workflow_type.clone(),
                         };
                         tasks.push(task);
                         if tasks.len() >= max_tasks {

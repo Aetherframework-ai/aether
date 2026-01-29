@@ -15,17 +15,15 @@
     "aether",
     "workflow",
     "orchestration",
-    "grpc"
+    "rest",
+    "websocket"
   ],
   "scripts": {
     "build": "tsc",
     "test": "jest",
     "dev": "tsc --watch"
   },
-  "dependencies": {
-    "@grpc/grpc-js": "^1.14.3",
-    "@grpc/proto-loader": "^0.8.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/node": "^18.0.0",

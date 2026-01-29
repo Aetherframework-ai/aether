@@ -2,6 +2,12 @@
   "name": "aether",
   "version": "0.0.0-dev",
   "description": "Aether workflow engine",
+  "exports": {
+    "./trpc": {
+      "import": "./sdks/trpc/dist/index.js",
+      "types": "./sdks/trpc/dist/index.d.ts"
+    }
+  },
   "scripts": {
     "semantic-release": "semantic-release",
     "test:commit-message": "echo \"feat: test\" | npx commitlint"

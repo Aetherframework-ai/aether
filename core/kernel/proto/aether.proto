@@ -86,6 +86,7 @@ message Task {
   ResourceType resource_type = 6;
   bytes input = 7;
   RetryPolicy retry = 8;
+  string workflow_type = 9;
 }
 
 message RetryPolicy {

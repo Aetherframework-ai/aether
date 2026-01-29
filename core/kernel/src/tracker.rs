@@ -7,11 +7,11 @@ use tokio::sync::RwLock;
 /// Step 执行状态
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum StepExecutionStatus {
-    Pending,           // 等待执行
-    Running,           // 执行中
-    Completed,         // 已完成
-    Failed { error: String },  // 失败
-    Cancelled,         // 取消
+    Pending,                  // 等待执行
+    Running,                  // 执行中
+    Completed,                // 已完成
+    Failed { error: String }, // 失败
+    Cancelled,                // 取消
 }
 
 /// Unix 时间戳（秒）
@@ -20,25 +20,6 @@ pub struct Timestamp {
     pub seconds: i64,
     pub nanos: i32,
 }
-
-impl From<prost_types::Timestamp> for Timestamp {
-    fn from(ts: prost_types::Timestamp) -> Self {
-        Self {
-            seconds: ts.seconds,
-            nanos: ts.nanos,
-        }
-    }
-}
-
-impl From<Timestamp> for prost_types::Timestamp {
-    fn from(ts: Timestamp) -> Self {
-        Self {
-            seconds: ts.seconds,
-            nanos: ts.nanos,
-        }
-    }
-}
-
 
 /// 单个 Step 的执行记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,7 +31,7 @@ pub struct StepExecution {
     pub input: Vec<u8>,
     pub output: Option<Vec<u8>>,
     pub attempt: u32,
-    pub dependencies: Vec<String>,  // 依赖的 step 名称
+    pub dependencies: Vec<String>, // 依赖的 step 名称
 }
 
 /// Workflow 执行追踪信息
@@ -97,10 +78,7 @@ impl WorkflowTracker {
     pub async fn start_workflow(&self, workflow_id: String, workflow_type: String) {
         let mut executions = self.executions.write().await;
         let now = std::time::SystemTime::now();
-        let seconds = now
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
+        let seconds = now.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
 
         executions.insert(
             workflow_id.clone(),
@@ -124,15 +102,10 @@ impl WorkflowTracker {
         dependencies: Vec<String>,
     ) -> StepExecution {
         let mut executions = self.executions.write().await;
-        let execution = executions
-            .get_mut(workflow_id)
-            .expect("Workflow not found");
+        let execution = executions.get_mut(workflow_id).expect("Workflow not found");
 
         let now = std::time::SystemTime::now();
-        let seconds = now
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
+        let seconds = now.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
 
         let step_execution = StepExecution {
             step_name: step_name.to_string(),
@@ -159,10 +132,7 @@ impl WorkflowTracker {
         if let Some(execution) = executions.get_mut(workflow_id) {
             if let Some(step) = execution.step_executions.get_mut(step_name) {
                 let now = std::time::SystemTime::now();
-                let seconds = now
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs() as i64;
+                let seconds = now.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
 
                 step.status = StepExecutionStatus::Completed;
                 step.completed_at = Some(Timestamp { seconds, nanos: 0 });
@@ -178,10 +148,7 @@ impl WorkflowTracker {
         if let Some(execution) = executions.get_mut(workflow_id) {
             if let Some(step) = execution.step_executions.get_mut(step_name) {
                 let now = std::time::SystemTime::now();
-                let seconds = now
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs() as i64;
+                let seconds = now.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
 
                 step.status = StepExecutionStatus::Failed {
                     error: error.clone(),
@@ -198,10 +165,7 @@ impl WorkflowTracker {
         let mut executions = self.executions.write().await;
         if let Some(execution) = executions.get_mut(workflow_id) {
             let now = std::time::SystemTime::now();
-            let seconds = now
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64;
+            let seconds = now.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
 
             execution.completed_at = Some(Timestamp { seconds, nanos: 0 });
             execution.current_step = None;
@@ -213,10 +177,7 @@ impl WorkflowTracker {
         let mut executions = self.executions.write().await;
         if let Some(execution) = executions.get_mut(workflow_id) {
             let now = std::time::SystemTime::now();
-            let seconds = now
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64;
+            let seconds = now.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
 
             execution.completed_at = Some(Timestamp { seconds, nanos: 0 });
             execution.current_step = None;
@@ -285,7 +246,9 @@ mod tests {
         assert!(step.started_at.is_some());
 
         // 完成 step
-        tracker.step_completed("wf-1", "step-1", vec![4, 5, 6]).await;
+        tracker
+            .step_completed("wf-1", "step-1", vec![4, 5, 6])
+            .await;
 
         let execution = tracker.get_execution("wf-1").await.unwrap();
         assert!(execution.step_executions.contains_key("step-1"));
